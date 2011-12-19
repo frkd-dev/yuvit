@@ -1,11 +1,9 @@
-/* Disable Visual Studio 2oo5 warnings */
-#define _CRT_SECURE_NO_DEPRECATE
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "corona.h"
+
+#include "FreeImage.h"
 
 #define MAJORVERSION "1"
 #define MINORVERSION "0"
@@ -33,6 +31,7 @@ int dollarWarnFlag = 0;
 
 int main(int argc, char* argv[])
 {
+	FIBITMAP *inImage;
 	corona::Image *inImage;
 	int lumaWidth, lumaHeight;
 	int chromaWidth, chromaHeight;
@@ -77,6 +76,8 @@ int main(int argc, char* argv[])
 		printf("ERROR: Wrong enumeration parameters in multifile option...\n");
 		return 0;
 	}
+
+	FreeImage_Initialise();
 
 	while(firstEnum <= lastEnum)
 	{	/* Main cycle for converting all images */
@@ -144,7 +145,7 @@ int main(int argc, char* argv[])
 			break;
 		case 3: /* H1V1 */
 			chromaWidth = lumaWidth;
-			chromaHeight = lumaHeight / 2;
+			chromaHeight = lumaHeight;
 			xMask = 0;
 			yMask = 0;
 			break;
@@ -241,6 +242,9 @@ int main(int argc, char* argv[])
 	} /* while(firstEnum <= lastEnum)*/
 
 	printf("Done.\n");
+
+	FreeImage_DeInitialise();
+
 	return 0;
 }
 
