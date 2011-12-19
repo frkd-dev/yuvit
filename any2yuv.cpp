@@ -2,21 +2,23 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <string>
 
 #include "FreeImage.h"
 
-#define MAJORVERSION "1"
-#define MINORVERSION "0"
+#define MAX_PATH 2048
+#define MAJORVERSION "0"
+#define MINORVERSION "1"
 #define APPVERSION MAJORVERSION "." MINORVERSION
 
-#pragma comment(lib, "corona_static.lib")
+using namespace std;
 
 void ArgParser(char* args[], int count);
 int ArgGetIndex(char* argPos, char* args[]);
 void PrintHelp();
 int ExpandEnumerator(char *inString, char* outString, int enumValue, int enumSize);
 
-int addMode = 0;	/* if not zero add new YUV image to existing file */
+int appendMode = 0;	/* if not zero append YUV image(s) to output file */
 int yuvMode = 0;	/* YUV output mode. Default: h2v2 */
 int multiMode = 0;	/* Flag of multi file mode */
 int firstEnum = 0;	/* First enumerator */
@@ -26,13 +28,13 @@ int cSource = 0;	/* Make output as C/C++ source*/
 
 char *origInFileName = 0, *origOutFileName = 0;
 FILE* hOutFile;
-char inFileName[1024], outFileName[1024];
+char inFileName[MAX_PATH + 1], outFileName[MAX_PATH + 1];
 int dollarWarnFlag = 0;
 
 int main(int argc, char* argv[])
 {
-	FIBITMAP *inImage;
-	corona::Image *inImage;
+	uint8_t errorFlag = 1; // By default we will exiting with error
+	FIBITMAP *inImage = 0;
 	int lumaWidth, lumaHeight;
 	int chromaWidth, chromaHeight;
 	int size;
@@ -41,6 +43,8 @@ int main(int argc, char* argv[])
 	unsigned char* rgbPixels;
 	unsigned char *yPixels, *uPixels, *vPixels;
 	unsigned char *yPtr, *uPtr, *vPtr;
+
+	FreeImage_Initialise();
 
 	if(argc == 1)
 	{
@@ -54,30 +58,28 @@ int main(int argc, char* argv[])
 	{
 		printf("ERROR: Unknown output mode...\n");
 		PrintHelp();
-		return 0;
+		goto HandleError;
 	}
 
 	if(origInFileName == 0)
 	{
 		printf("ERROR: Input filename not specified...\n");
 		PrintHelp();
-		return 0;
+		goto HandleError;
 	}
 
 	if(origOutFileName == 0)
 	{
 		printf("ERROR: Input filename not specified...\n");
 		PrintHelp();
-		return 0;
+		goto HandleError;
 	}
 
 	if(multiMode != 0 && firstEnum >= lastEnum)
 	{
 		printf("ERROR: Wrong enumeration parameters in multifile option...\n");
-		return 0;
+		goto HandleError;
 	}
-
-	FreeImage_Initialise();
 
 	while(firstEnum <= lastEnum)
 	{	/* Main cycle for converting all images */
@@ -101,10 +103,10 @@ int main(int argc, char* argv[])
 		if(inImage == 0)
 		{
 			printf("ERROR: Can not open input file...\n");
-			return 0;
+			goto handleError;
 		}
 
-		if(addMode == 0)
+		if(appendMode == 0)
 			hOutFile = fopen(outFileName,"wb"); /* Write in new file */
 		else
 			hOutFile = fopen(outFileName,"ab"); /* Add to existing file */
@@ -113,7 +115,7 @@ int main(int argc, char* argv[])
 		{
 			delete inImage;
 			printf("ERROR: Can not open output file...\n");
-			return 0;
+			goto error;
 		}
 
 		printf("%s\n", inFileName);
@@ -155,7 +157,7 @@ int main(int argc, char* argv[])
 		uPixels = (unsigned char*)malloc(chromaHeight * chromaWidth);
 		vPixels = (unsigned char*)malloc(chromaHeight * chromaWidth);
 
-		/* Do convert */
+		/* Converting cycle */
 		yPtr = yPixels;
 		uPtr = uPixels;
 		vPtr = vPixels;
@@ -243,15 +245,18 @@ int main(int argc, char* argv[])
 
 	printf("Done.\n");
 
+	errorFlag = 0; // We successful passed all stages, so set flag to zero which means - OK
+
+HandleError:
 	FreeImage_DeInitialise();
 
-	return 0;
+	return errorFlag;
 }
 
 /*
 	
- Description: Function searches '$' chars and replaces it with enumerator 
- Returns: Quantity of finded '$' chars
+ Description: Function searches '#' chars and replaces it with enumerator
+ Returns: Count of found '#' symbols
 
 */
 int ExpandEnumerator(char *inString, char* outString, int enumValue, int enumSize)
@@ -286,24 +291,23 @@ void PrintHelp()
 		"Options:\n"
 		"   -a : Add new image to the end of output file. Don't truncate output file.\n"
 		"   -t <h2v2|h2v1|h1v2|h1v1|uvyv|yuyv> : Type of output YUV image(s).\n"
-		"   -m <first> <last> <n> : Multiple input file mode. Where:\n"
-		"      first : first enumerator\n"
-		"      last  : last enumerator\n"
-		"      n     : size of enumerator (3 for 001, 5 for 00001)\n"
+		"   -r <from>:<to> : Multiple input file mode. Where:\n"
+		"      first : Start counter value\n"
+		"      last  : End counter value\n"
 		"   -c : Output as C/C++ source. Default: binary mode\n"
 		"\nNote: Use symbol '#' in file names for enumerators.\n"
 		"\nExamples:\n"
-		"any2yuv.exe -a -m 0 100 3 test#.bmp out.yuv\n"
+		"any2yuv.exe -a -r 0:100 test###.bmp out.yuv\n"
 		"   Convert images from 'test000.bmp' to 'test100.bmp' into single 'out.yuv' file\n"
-		"\nany2yuv.exe -m 10 200 5 test#.jpg out$.yuv\n"
-		"   Convert images 'test00010.jpg'...'test00200.jpg' into files 'out00010.yuv'...'out00200.yuv'\n"
+		"\nany2yuv.exe -r 10:200 test#####.jpg out###.yuv\n"
+		"   Convert images 'test00010.jpg'...'test00200.jpg' into files 'out010.yuv'...'out200.yuv'\n"
 		);
 }
 
 char *appArgs[] = {
 	"-a", /* New converted image will be added to the end of output file */
 	"-t", /* output YUV type can be h2v2, h2v1, h1v2, h1v1, uyvy, yuyv */
-	"-m", /* Mutifle mode */
+	"-r", /* Mutifle mode */
 	"-c",
 	0
 };
@@ -322,7 +326,7 @@ void ArgParser(char* args[], int count)
 		switch(index)
 		{
 		case 0: /* Add mode */
-			addMode = 1;
+			appendMode = 1;
 			break;
 		case 1: /* Output type */
 			pos++;
