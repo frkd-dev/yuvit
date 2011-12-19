@@ -53,28 +53,28 @@ int main(int argc, char* argv[])
 
 	if(yuvMode == -1)
 	{
-		printf("Error: Unknown output mode...\n");
+		printf("ERROR: Unknown output mode...\n");
 		PrintHelp();
 		return 0;
 	}
 
 	if(origInFileName == 0)
 	{
-		printf("Error: Input filename not specified...\n");
+		printf("ERROR: Input filename not specified...\n");
 		PrintHelp();
 		return 0;
 	}
 
 	if(origOutFileName == 0)
 	{
-		printf("Error: Input filename not specified...\n");
+		printf("ERROR: Input filename not specified...\n");
 		PrintHelp();
 		return 0;
 	}
 
 	if(multiMode != 0 && firstEnum >= lastEnum)
 	{
-		printf("Error: Wrong enumeration parameters in multifile option...\n");
+		printf("ERROR: Wrong enumeration parameters in multifile option...\n");
 		return 0;
 	}
 
@@ -99,7 +99,7 @@ int main(int argc, char* argv[])
 		inImage = corona::OpenImage(inFileName, corona::PF_R8G8B8);
 		if(inImage == 0)
 		{
-			printf("Error: Can not open input file...\n");
+			printf("ERROR: Can not open input file...\n");
 			return 0;
 		}
 
@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
 		if(hOutFile == 0)
 		{
 			delete inImage;
-			printf("Error: Can not open output file...\n");
+			printf("ERROR: Can not open output file...\n");
 			return 0;
 		}
 
@@ -259,7 +259,7 @@ int ExpandEnumerator(char *inString, char* outString, int enumValue, int enumSiz
 
 	while(*inString != 0)
 	{
-		if(*inString == '$')
+		if(*inString == '#')
 		{
 			sprintf(outString, formatString, enumValue);
 			outString += enumSize;
@@ -287,11 +287,11 @@ void PrintHelp()
 		"      last  : last enumerator\n"
 		"      n     : size of enumerator (3 for 001, 5 for 00001)\n"
 		"   -c : Output as C/C++ source. Default: binary mode\n"
-		"\nNote: Use symbol '$' in file names for enumerators.\n"
+		"\nNote: Use symbol '#' in file names for enumerators.\n"
 		"\nExamples:\n"
-		"any2yuv.exe -a -m 0 100 3 test$.bmp out.yuv\n"
+		"any2yuv.exe -a -m 0 100 3 test#.bmp out.yuv\n"
 		"   Convert images from 'test000.bmp' to 'test100.bmp' into single 'out.yuv' file\n"
-		"\nany2yuv.exe -m 10 200 5 test$.jpg out$.yuv\n"
+		"\nany2yuv.exe -m 10 200 5 test#.jpg out$.yuv\n"
 		"   Convert images 'test00010.jpg'...'test00200.jpg' into files 'out00010.yuv'...'out00200.yuv'\n"
 		);
 }
@@ -340,7 +340,7 @@ void ArgParser(char* args[], int count)
 			}else if(origOutFileName == 0){
 				origOutFileName = args[pos];
 			}else{
-				printf("Error: Unknown argument '%s'...\n", args[pos]);
+				printf("ERROR: Unknown argument '%s'...\n", args[pos]);
 			}
 			break;
 		}
