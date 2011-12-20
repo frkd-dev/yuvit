@@ -1,10 +1,12 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
+#include <iostream>
+#include <sstream>
 #include <string>
+#include <vector>
 
 #include "FreeImage.h"
+#include "getopt_pp.h"
+
 
 #define MAX_PATH 2048
 #define MAJORVERSION "0"
@@ -13,26 +15,45 @@
 
 using namespace std;
 
-void ArgParser(char* args[], int count);
-int ArgGetIndex(char* argPos, char* args[]);
+#define LOG_ERROR(__MSG__) {printf("ERROR: "); printf(__MSG__); printf("\n");}
+
+enum YUVMode {
+	YUV_H2V2,
+	YUV_H2V1,
+	YUV_H1V2,
+	YUV_H1V1,
+	YUV_UYVY,
+	YUV_YUVU
+};
+
+class Config
+{
+public:
+	bool appendMode;	/* if not zero append YUV image(s) to output file */
+	bool yuvType;	/* YUV output mode. Default: h2v2 */
+	bool cSource;	/* Make output as C/C++ source */
+	uint32_t seqStart;	/* Sequence start for multiple files */
+	uint32_t seqEnd;		/* Sequence end for multiple files */
+	string inFileNamePattern;
+	string outFileNamePattern;
+
+	Config();
+
+	// Returns "false" on errors and "true" if no errors
+	bool ParseArgs(char* args[], int count);
+
+private:
+	bool ParseSequenceRange(string range);
+};
+
 void PrintHelp();
-int ExpandEnumerator(char *inString, char* outString, int enumValue, int enumSize);
-
-int appendMode = 0;	/* if not zero append YUV image(s) to output file */
-int yuvMode = 0;	/* YUV output mode. Default: h2v2 */
-int multiMode = 0;	/* Flag of multi file mode */
-int firstEnum = 0;	/* First enumerator */
-int lastEnum = 0;	/* Last enumerator*/
-int enumSize = 0;	/* Size of enumerator*/
-int cSource = 0;	/* Make output as C/C++ source*/
-
-char *origInFileName = 0, *origOutFileName = 0;
-FILE* hOutFile;
-char inFileName[MAX_PATH + 1], outFileName[MAX_PATH + 1];
-int dollarWarnFlag = 0;
+int ExpandPattern(string pattern, int value);
 
 int main(int argc, char* argv[])
 {
+	Config cfg;
+	string inFileName, outFileName;
+	FILE* hOutFile;
 	uint8_t errorFlag = 1; // By default we will exiting with error
 	FIBITMAP *inImage = 0;
 	int lumaWidth, lumaHeight;
@@ -44,77 +65,34 @@ int main(int argc, char* argv[])
 	unsigned char *yPixels, *uPixels, *vPixels;
 	unsigned char *yPtr, *uPtr, *vPtr;
 
+	if(!cfg.ParseArgs(argv, argc))
+		exit(1);
+
 	FreeImage_Initialise();
 
-	if(argc == 1)
-	{
-		PrintHelp();
-		return 0;
-	}
-
-	ArgParser(argv, argc);
-
-	if(yuvMode == -1)
-	{
-		printf("ERROR: Unknown output mode...\n");
-		PrintHelp();
-		goto HandleError;
-	}
-
-	if(origInFileName == 0)
-	{
-		printf("ERROR: Input filename not specified...\n");
-		PrintHelp();
-		goto HandleError;
-	}
-
-	if(origOutFileName == 0)
-	{
-		printf("ERROR: Input filename not specified...\n");
-		PrintHelp();
-		goto HandleError;
-	}
-
-	if(multiMode != 0 && firstEnum >= lastEnum)
-	{
-		printf("ERROR: Wrong enumeration parameters in multifile option...\n");
-		goto HandleError;
-	}
-
-	while(firstEnum <= lastEnum)
+	while(cfg.seqStart <= cfg.seqEnd)
 	{	/* Main cycle for converting all images */
 
-		if(!multiMode)
-		{ /* If not Multi file mode don't use enumerators expansion */
-			strcpy(inFileName, origInFileName);
-			strcpy(outFileName, origOutFileName);
-		}else{
-			/* Expand enumerators in filenames */
-			if(ExpandEnumerator(origInFileName, inFileName, firstEnum, enumSize) == 0 &&
-				dollarWarnFlag != 1)
-			{
-				dollarWarnFlag = 1;
-				printf("Warning: Input file name not have enumeration char '$'.\n");
-			}
-			ExpandEnumerator(origOutFileName, outFileName, firstEnum, enumSize);
-		}
+		/* Expand patterns in filenames */
+		inFileName = ExpandPattern(cfg.inFileNamePattern, cfg.seqStart);
+		outFileName = ExpandPattern(cfg.outFileNamePattern, cfg.seqStart);
 
 		inImage = corona::OpenImage(inFileName, corona::PF_R8G8B8);
 		if(inImage == 0)
 		{
-			printf("ERROR: Can not open input file...\n");
+			LOG_ERROR("Can not open input file...");
 			goto handleError;
 		}
 
-		if(appendMode == 0)
-			hOutFile = fopen(outFileName,"wb"); /* Write in new file */
+		if(cfg.appendMode == 0)
+			hOutFile = fopen( outFileName.c_str(), "wb" ); /* Write in new file */
 		else
-			hOutFile = fopen(outFileName,"ab"); /* Add to existing file */
+			hOutFile = fopen( outFileName.c_str(), "ab" ); /* Add to existing file */
 
 		if(hOutFile == 0)
 		{
 			delete inImage;
-			printf("ERROR: Can not open output file...\n");
+			LOG_ERROR("Can not open output file...");
 			goto error;
 		}
 
@@ -125,27 +103,27 @@ int main(int argc, char* argv[])
 		lumaHeight = inImage->getHeight();
 
 		/* Calculate dimensions */
-		switch(yuvMode)
+		switch(cfg.yuvType)
 		{
 		default:
-		case 0: /* H2V2 */
+		case YUV_H2V2: /* H2V2 */
 			chromaWidth = lumaWidth / 2;
 			chromaHeight = lumaHeight / 2;
 			yMask = xMask = 1;
 			break;
-		case 1: /* H2V1 */
+		case YUV_H2V1: /* H2V1 */
 			chromaWidth = lumaWidth;
 			chromaHeight = lumaHeight / 2;
 			xMask = 0;
 			yMask = 1;
 			break;
-		case 2: /* H1V2 */
+		case YUV_H1V2: /* H1V2 */
 			chromaWidth = lumaWidth / 2;
 			chromaHeight = lumaHeight;
 			xMask = 1;
 			yMask = 0;
 			break;
-		case 3: /* H1V1 */
+		case YUV_H1V1: /* H1V1 */
 			chromaWidth = lumaWidth;
 			chromaHeight = lumaHeight;
 			xMask = 0;
@@ -180,7 +158,7 @@ int main(int argc, char* argv[])
 		}
 
 		/* Write converted image to file */
-		if(cSource == 1)
+		if(cfg.cSource == 1)
 		{
 			fprintf(hOutFile, "unsigned char yuvImage[%d] = {\n\t", lumaWidth * lumaHeight + chromaWidth * chromaHeight * 2);
 
@@ -240,7 +218,7 @@ int main(int argc, char* argv[])
 		free(uPixels);
 		free(vPixels);
 
-		firstEnum++;
+		cfg.seqStart++;
 	} /* while(firstEnum <= lastEnum)*/
 
 	printf("Done.\n");
@@ -253,119 +231,173 @@ HandleError:
 	return errorFlag;
 }
 
-/*
-	
- Description: Function searches '#' chars and replaces it with enumerator
- Returns: Count of found '#' symbols
-
-*/
-int ExpandEnumerator(char *inString, char* outString, int enumValue, int enumSize)
+string toString(int value)
 {
-	int count = 0;
-	char formatString[1024];
+	ostringstream oss;
+	oss << value;
+	return oss.str();
+}
 
-	sprintf(formatString, "%%0%dd", enumSize);
+/*
+ Description: Function searches for '#' symbols and replaces them by integer value with leading zeros
+ Returns: Formed string
+*/
 
-	while(*inString != 0)
+string ExpandPattern(string pattern, int counter)
+{
+	string result;
+	string::iterator it;
+	uint32_t cntr = 0;
+
+	// Copy from input pattern to resulting string until we meet '#' sign
+	while( it != pattern.end() && *it != '#') result += *it++;
+
+	// Calculate number of '#' signs in input pattern
+	while( it != pattern.end() && *it == '#')
 	{
-		if(*inString == '#')
-		{
-			sprintf(outString, formatString, enumValue);
-			outString += enumSize;
-			inString++;
-			count++;
-		}else{
-			*outString++ = *inString++;
-		}
+		it++;
+		cntr++;
 	}
-	return count;
+
+	// If we not found any patterns - just return unmodified input pattern
+	if( !cntr )
+		return pattern;
+
+	string counterStr = toString(cntr);
+
+	// Determine leading zeros
+	if(cntr > counterStr.length())
+	{
+		// We have leading zeros
+		cntr -= counterStr.length();
+	}else{
+		// Resulting counter bigger than pattern has defined,
+		// therefore there are no leading zeros
+		cntr = 0;
+	}
+	// cntr from now contains number of leading zeros
+
+	// Append to result leading zeros
+	if(cntr)
+		result.append(cntr, '0');
+
+	// Append integer value
+	result.append(counterStr);
+
+	// Copy from input pattern to resulting string rest of input pattern
+	while( it != pattern.end() ) result += *it++;
+
+	return result;
+}
+
+Config::Config()
+{
+	appendMode = false;	/* if not zero append YUV image(s) to output file */
+	yuvType = false;	/* YUV output mode. Default: h2v2 */
+	cSource = false;	/* Make output as C/C++ source */
+	seqStart = 0;	/* Sequence start for multiple files */
+	seqEnd = 0;		/* Sequence end for multiple files */
+}
+
+
+bool Config::ParseArgs(char* args[], int count)
+{
+	using namespace GetOpt;
+
+	vector<string> files;
+	string seqRangeOption;
+	string yuvTypeOption;
+	bool error = false;
+
+	GetOpt_pp opt(count, args);
+
+	opt >> OptionPresent('a', appendMode);
+	opt >> OptionPresent('c', cSource);
+	opt >> Option('r', seqRangeOption);
+	opt >> Option('t', yuvTypeOption);
+	opt >> GlobalOption(files);
+
+	if(files.size() > 0)
+		inFileNamePattern = files[0];
+
+	if(files.size() >= 1)
+		outFileNamePattern = files[1];
+	else
+	{
+		LOG_ERROR("You've not specified one of filenames...");
+		error = true;
+	}
+
+	if( yuvTypeOption == "h2v2")
+		yuvType = YUV_H2V2;
+	else if(yuvTypeOption == "h1v1")
+		yuvType = YUV_H1V1;
+	else if(yuvTypeOption == "h1v2")
+		yuvType = YUV_H1V2;
+	else if(yuvTypeOption == "h2v1")
+		yuvType = YUV_H2V1;
+	else
+	{
+		LOG_ERROR("Unknown YUV type...");
+		error = true;
+	}
+
+	if(!seqRangeOption.empty())
+		if(!ParseSequenceRange(seqRangeOption))
+		{
+			LOG_ERROR("You've specified bad sequence range...");
+			error = true;
+		}
+
+	if(error)
+		PrintHelp();
+
+	return !error;
+}
+
+bool Config::ParseSequenceRange(string range)
+{
+	string::iterator it = range.begin();
+	string seqStartOpt;
+	string seqEndOpt;
+
+	// Copy from input to seqStartOpt until we will find ':' character
+	while(it != range.end() && *it != ':')
+		seqStartOpt += *it++;
+
+	if(it == range.end() || *it++ != ':')
+		return false;
+
+	// Copy from input to seqEndOpt till the end
+	while(it != range.end())
+		seqEndOpt += *it++;
+
+	if(seqStartOpt.empty() || seqEndOpt.empty())
+		return false;
+
+	seqStart = atoi(seqStartOpt.c_str());
+	seqEnd = atoi(seqEndOpt.c_str());
 }
 
 void PrintHelp()
 {
 	printf(
 		"-=======================================================================-\n"
-		"  Any 2 YUV convertor v" APPVERSION " (C)2006 Shashkevych Alexander\n"
+		"  Any 2 YUV convertor v" APPVERSION " (C)2011 Shashkevych Alexander\n"
 		"-=======================================================================-\n"
 		"Usage: any2yuv.exe [options] <InFile> <OutFile>\n\n"
 		"Options:\n"
 		"   -a : Add new image to the end of output file. Don't truncate output file.\n"
 		"   -t <h2v2|h2v1|h1v2|h1v1|uvyv|yuyv> : Type of output YUV image(s).\n"
-		"   -r <from>:<to> : Multiple input file mode. Where:\n"
-		"      first : Start counter value\n"
-		"      last  : End counter value\n"
+		"   -r <start>:<end> : Multiple input file mode. Where:\n"
+		"      first : Sequence start\n"
+		"      last  : Sequence end\n"
 		"   -c : Output as C/C++ source. Default: binary mode\n"
 		"\nNote: Use symbol '#' in file names for enumerators.\n"
 		"\nExamples:\n"
-		"any2yuv.exe -a -r 0:100 test###.bmp out.yuv\n"
+		"any2yuv.exe -a -r=0:100 test###.bmp out.yuv\n"
 		"   Convert images from 'test000.bmp' to 'test100.bmp' into single 'out.yuv' file\n"
-		"\nany2yuv.exe -r 10:200 test#####.jpg out###.yuv\n"
-		"   Convert images 'test00010.jpg'...'test00200.jpg' into files 'out010.yuv'...'out200.yuv'\n"
+		"\nany2yuv.exe -r=10:200 test######.jpg out###.yuv\n"
+		"   Convert images 'test000010.jpg'...'test000200.jpg' into files 'out010.yuv'...'out200.yuv'\n"
 		);
-}
-
-char *appArgs[] = {
-	"-a", /* New converted image will be added to the end of output file */
-	"-t", /* output YUV type can be h2v2, h2v1, h1v2, h1v1, uyvy, yuyv */
-	"-r", /* Mutifle mode */
-	"-c",
-	0
-};
-
-char *modeArgs [] = {
-	"h2v2", "h2v1", "h1v2", "h1v1", "yuvu", "uyvy", 0
-};
-
-void ArgParser(char* args[], int count)
-{
-	int pos = 1, index;
-
-	while(pos < count)
-	{
-		index = ArgGetIndex(args[pos], appArgs);
-		switch(index)
-		{
-		case 0: /* Add mode */
-			appendMode = 1;
-			break;
-		case 1: /* Output type */
-			pos++;
-			yuvMode = ArgGetIndex(args[pos], modeArgs);
-			break;
-		case 2:	/* Mutlifile mode */
-			multiMode = 1;
-			firstEnum = atoi(args[++pos]);
-			lastEnum = atoi(args[++pos]);
-			enumSize = atoi(args[++pos]);
-			break;
-		case 3:
-			cSource = 1;
-			break;
-		case -1: /* filenames */
-			if(origInFileName == 0)
-			{
-				origInFileName = args[pos];
-			}else if(origOutFileName == 0){
-				origOutFileName = args[pos];
-			}else{
-				printf("ERROR: Unknown argument '%s'...\n", args[pos]);
-			}
-			break;
-		}
-		pos++;
-	}
-}
-
-int ArgGetIndex(char* arg, char* appArgs[])
-{
-	int pos = 0;
-	
-	while(appArgs[pos] != 0)
-	{
-		if(strcmp(appArgs[pos], arg) == 0)
-			return pos;
-		pos++;
-	}
-
-	return -1;
 }
