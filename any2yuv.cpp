@@ -15,6 +15,9 @@
 
 using namespace std;
 
+#define LOG_MESSAGE(__MSG__, ...) {printf(__MSG__, __VA_ARGS__); printf("\n");}
+#define LOG_MESSAGE(__MSG__) {printf(__MSG__); printf("\n");}
+#define LOG_ERROR(__MSG__, ...) {printf("ERROR: "); printf(__MSG__, __VA_ARGS__); printf("\n");}
 #define LOG_ERROR(__MSG__) {printf("ERROR: "); printf(__MSG__); printf("\n");}
 
 enum YUVMode {
@@ -77,10 +80,18 @@ int main(int argc, char* argv[])
 		inFileName = ExpandPattern(cfg.inFileNamePattern, cfg.seqStart);
 		outFileName = ExpandPattern(cfg.outFileNamePattern, cfg.seqStart);
 
-		inImage = corona::OpenImage(inFileName, corona::PF_R8G8B8);
+		FREE_IMAGE_FORMAT format = FreeImage_GetFileType(inFileName.c_str());
+		if(format == FIF_UNKNOWN)
+		{
+			LOG_ERROR("Input image format is unknown or unsupported...");
+			goto HandleError;
+		}
+
+		inImage = FreeImage_Load(format, inFileName.c_str());
+
 		if(inImage == 0)
 		{
-			LOG_ERROR("Can not open input file...");
+			LOG_ERROR("Can't read input image...");
 			goto handleError;
 		}
 
@@ -91,39 +102,37 @@ int main(int argc, char* argv[])
 
 		if(hOutFile == 0)
 		{
-			delete inImage;
 			LOG_ERROR("Can not open output file...");
-			goto error;
+			goto HandleError;
 		}
 
-		printf("%s\n", inFileName);
+		LOG_MESSAGE("Processing: %s", inFileName.c_str());
 
-		rgbPixels = (unsigned char*)inImage->getPixels();
-		lumaWidth = inImage->getWidth();
-		lumaHeight = inImage->getHeight();
+		lumaWidth = FreeImage_GetWidth(inImage);
+		lumaHeight = FreeImage_GetWidth(inImage);
 
-		/* Calculate dimensions */
+		/* Calculate dimensions of destination YUV */
 		switch(cfg.yuvType)
 		{
 		default:
-		case YUV_H2V2: /* H2V2 */
+		case YUV_H2V2:
 			chromaWidth = lumaWidth / 2;
 			chromaHeight = lumaHeight / 2;
 			yMask = xMask = 1;
 			break;
-		case YUV_H2V1: /* H2V1 */
+		case YUV_H2V1:
 			chromaWidth = lumaWidth;
 			chromaHeight = lumaHeight / 2;
 			xMask = 0;
 			yMask = 1;
 			break;
-		case YUV_H1V2: /* H1V2 */
+		case YUV_H1V2:
 			chromaWidth = lumaWidth / 2;
 			chromaHeight = lumaHeight;
 			xMask = 1;
 			yMask = 0;
 			break;
-		case YUV_H1V1: /* H1V1 */
+		case YUV_H1V1:
 			chromaWidth = lumaWidth;
 			chromaHeight = lumaHeight;
 			xMask = 0;
@@ -135,13 +144,14 @@ int main(int argc, char* argv[])
 		uPixels = (unsigned char*)malloc(chromaHeight * chromaWidth);
 		vPixels = (unsigned char*)malloc(chromaHeight * chromaWidth);
 
-		/* Converting cycle */
 		yPtr = yPixels;
 		uPtr = uPixels;
 		vPtr = vPixels;
 
+		/* Main converting cycle */
 		for(y = 0; y < lumaHeight; y++)
 		{
+			rgbPixels = FreeImage_GetScanLine(inImage, y);
 			for(x = 0; x < lumaWidth; x++)
 			{
 				Rc = *rgbPixels++;
@@ -212,20 +222,36 @@ int main(int argc, char* argv[])
 			fwrite(vPixels, 1, chromaWidth * chromaHeight, hOutFile);
 		}
 
-		delete inImage;
+		FreeImage_Unload(inImage);
+		inImage = 0;
+
 		fclose(hOutFile);
+		hOutFile = 0;
+
 		free(yPixels);
 		free(uPixels);
 		free(vPixels);
 
 		cfg.seqStart++;
-	} /* while(firstEnum <= lastEnum)*/
+	}
 
-	printf("Done.\n");
+	LOG_MESSAGE("Done!");
 
 	errorFlag = 0; // We successful passed all stages, so set flag to zero which means - OK
 
 HandleError:
+	if(inImage)
+	{
+		FreeImage_Unload(inImage);
+		inImage = 0;
+	}
+
+	if(hOutFile)
+	{
+		fclose(hOutFile);
+		hOutFile = 0;
+	}
+
 	FreeImage_DeInitialise();
 
 	return errorFlag;
@@ -377,6 +403,8 @@ bool Config::ParseSequenceRange(string range)
 
 	seqStart = atoi(seqStartOpt.c_str());
 	seqEnd = atoi(seqEndOpt.c_str());
+
+	return true;
 }
 
 void PrintHelp()
