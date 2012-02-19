@@ -1,5 +1,5 @@
 OS = $(shell uname)
-MAKEFILE = gnu
+MAKEFILE = linux
 
 ifeq ($(OS),Darwin)
     MAKEFILE = osx

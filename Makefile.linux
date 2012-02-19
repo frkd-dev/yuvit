@@ -4,7 +4,7 @@ SOURCES=$(wildcard *.cpp)
 OBJECTS=$(patsubst %.cpp,%.o,$(SOURCES))
 STATICLIB=$(APPNAME).a
 LIBS = -lfreeimage -lstdc++
-CPUS=$(shell sysctl -n hw.ncpu)
+CPUS=$(cat /proc/cpuinfo | grep processor | wc -l)
 
 CXX=g++
 CXXFLAGS = -Wall -O3 -I FreeImage/Dist -L FreeImage/Dist
@@ -21,10 +21,10 @@ $(APPNAME): FreeImage $(STATICLIB)
 	@$(CXX) -o $@ $(STATICLIB) $(LIBS) $(CXXFLAGS) 	
 
 FreeImage:
-	@$(MAKE) --jobs=$(CPUS) --directory=FreeImage -f Makefile.osx
+	@$(MAKE) --jobs=$(CPUS) --directory=FreeImage -f Makefile.gnu
 
 clean :
-	@$(MAKE) --directory=FreeImage -f Makefile.osx clean
+	@$(MAKE) --directory=FreeImage -f Makefile.gnu clean
 	$(RM) $(OBJECTS) $(APPNAME) $(STATICLIB)
 
 .PHONY : clean FreeImage
