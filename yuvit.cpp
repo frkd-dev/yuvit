@@ -41,7 +41,6 @@ class Config
 {
 public:
 	bool appendMode;			/* if not zero append YUV image(s) to output file */
-	bool cSource;				/* Make output as C/C++ source */
 	uint32_t yuvType;			/* YUV output mode. Default: h2v2 */
 	uint32_t seqStart;			/* Sequence start for multiple files */
 	uint32_t seqEnd;			/* Sequence end for multiple files */
@@ -182,61 +181,10 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		/* Write converted image to file */
-		if(cfg.cSource == 1)
-		{
-			fprintf(hOutFile, "unsigned char yuvImage[%d] = {\n\t", lumaWidth * lumaHeight + chromaWidth * chromaHeight * 2);
 
-			yPtr = yPixels;
-			uPtr = uPixels;
-			vPtr = vPixels;
-			x = 0;
-			size = lumaWidth * lumaHeight;
-
-			while(size--)
-			{
-				if(x >= 16)
-				{
-					x = 0;
-					fprintf(hOutFile, "\n\t");
-				}
-				fprintf(hOutFile, "0x%02x, ", *yPtr++);
-				x++;
-			}
-
-			size = chromaWidth * chromaHeight;
-			while(size--)
-			{
-				if(x >= 16)
-				{
-					x = 0;
-					fprintf(hOutFile, "\n\t");
-				}
-				fprintf(hOutFile, "0x%02x, ", *uPtr++);
-				x++;
-			}
-
-			size = chromaWidth * chromaHeight;
-			while(size--)
-			{
-				if(x >= 16)
-				{
-					x = 0;
-					fprintf(hOutFile, "\n\t");
-				}
-				if(size)
-					fprintf(hOutFile, "0x%02x, ", *vPtr++);
-				else
-					fprintf(hOutFile, "0x%02x", *vPtr++);
-				x++;
-			}
-			fprintf(hOutFile, "\n};\n");
-		}else{
-			fwrite(yPixels, 1, lumaWidth * lumaHeight, hOutFile);
-
-			fwrite(vPixels, 1, chromaWidth * chromaHeight, hOutFile);
-			fwrite(uPixels, 1, chromaWidth * chromaHeight, hOutFile);
-		}
+		fwrite(yPixels, 1, lumaWidth * lumaHeight, hOutFile);
+		fwrite(vPixels, 1, chromaWidth * chromaHeight, hOutFile);
+		fwrite(uPixels, 1, chromaWidth * chromaHeight, hOutFile);
 
 		FreeImage_Unload(inImage);
 		inImage = 0;
@@ -335,7 +283,6 @@ Config::Config()
 {
 	appendMode = false;	/* if not zero append YUV image(s) to output file */
 	yuvType = YUV_H2V2;	/* YUV output mode. Default: h2v2 */
-	cSource = false;	/* Make output as C/C++ source */
 	seqStart = 0;	/* Sequence start for multiple files */
 	seqEnd = 0;		/* Sequence end for multiple files */
 }
@@ -353,7 +300,6 @@ bool Config::ParseArgs(char* args[], int count)
 	GetOpt_pp opt(count, args);
 
 	opt >> OptionPresent('a', appendMode);
-	opt >> OptionPresent('c', cSource);
 	opt >> Option('r', seqRangeOption);
 	opt >> Option('t', yuvTypeOption);
 	opt >> GlobalOption(files);
@@ -433,7 +379,6 @@ void PrintHelp()
 		"   -r <start>:<end> : Process multiple input files. Where:\n"
 		"      start : Sequence start\n"
 		"      end  : Sequence end\n"
-		"   -c : Output as C/C++ source. Default: binary mode\n"
 		"\nNote: Use symbol '#' in file names for enumerators.\n"
 		"\nExamples:\n"
 		"yuvit -a -r=0:100 test###.bmp out.yuv\n"

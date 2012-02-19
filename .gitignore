@@ -4,7 +4,9 @@
 *.a
 *.a-*
 *.dylib
+*.dylib-*
 *.o
+*.o-*
 *.dll
 *.exe
 */Dist/*
