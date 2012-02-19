@@ -1,0 +1,31 @@
+APPNAME=yuvit
+
+SOURCES=$(wildcard *.cpp)
+OBJECTS=$(patsubst %.cpp,%.o,$(SOURCES))
+STATICLIB=$(APPNAME).a
+LIBS = -lfreeimage -lstdc++
+CPUS=$(shell sysctl -n hw.ncpu)
+
+CXX=g++
+CXXFLAGS = -Wall -O3 -I FreeImage/Dist -L FreeImage/Dist
+
+default : $(APPNAME)
+
+%.o : %.cpp
+	@$(CXX) $(CXXFLAGS) -o $@ -c $<
+
+$(STATICLIB) : $(OBJECTS)
+	@$(AR) rs $@ $(OBJECTS)
+
+$(APPNAME): FreeImage $(STATICLIB)
+	@$(CXX) -o $@ $(STATICLIB) $(LIBS) $(CXXFLAGS) 	
+
+# FreeImage's Makefile.osx uses old compilatiors and archs so we using generic Makefile.gnu
+FreeImage:
+	@$(MAKE) --jobs=$(CPUS) --directory=FreeImage -f Makefile.osx
+
+clean :
+	@$(MAKE) --directory=FreeImage -f Makefile.osx clean
+	$(RM) $(OBJECTS) $(APPNAME) $(STATICLIB)
+
+.PHONY : clean FreeImage
