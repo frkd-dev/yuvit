@@ -18,14 +18,14 @@ GetOpt_pp:  Yet another C++ version of getopt.
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if __APPLE__
-extern char** environ;
-#elif _WIN32
-#include <Stdio.h>
-#define environ _environ
-#else
-#include <unistd.h>
-#endif
+//#if __APPLE__
+//extern char** environ;
+//#elif _WIN32
+//#include <Stdio.h>
+//#define environ _environ
+//#else
+//#include <unistd.h>
+//#endif
 
 #include "getopt_pp.h"
 
@@ -97,6 +97,7 @@ GETOPT_INLINE void GetOpt_pp::_parse(int argc, const char* const* const argv)
 
 GETOPT_INLINE void GetOpt_pp::_parse_env()
 {
+#if 0 // We don't need such functionality
     // this will be optimized in version 3
     std::string var_name;
     std::string var_value;
@@ -127,6 +128,7 @@ GETOPT_INLINE void GetOpt_pp::_parse_env()
 
         var++;
     }
+#endif
 }
 
 GETOPT_INLINE GetOpt_pp::GetOpt_pp(int argc, const char* const* const argv)
