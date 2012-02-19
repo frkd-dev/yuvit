@@ -28,20 +28,30 @@ using namespace std;
 #define LOG_MESSAGE(...) {printf(__VA_ARGS__); printf("\n");}
 #define LOG_ERROR(...) {printf("ERROR: "); printf(__VA_ARGS__); printf("\n");}
 
-enum YUVMode {
-	YUV_H2V2,
-	YUV_H2V1,
-	YUV_H1V2,
-	YUV_H1V1,
+enum YUVFormat {
+	YUV_YUV,
+	YUV_YVU,
+	YUV_YVYU,
+	YUV_VYUY,
 	YUV_UYVY,
-	YUV_YUVU
+	YUV_YUYV
+};
+
+enum YUVScale
+{
+	SCALE_H2V2,
+	SCALE_H2V1,
+	SCALE_H1V2,
+	SCALE_H1V1,
 };
 
 class Config
 {
 public:
 	bool appendMode;			/* if not zero append YUV image(s) to output file */
-	uint32_t yuvType;			/* YUV output mode. Default: h2v2 */
+	bool uvInterleave;			/* if not zero, UV rows in planar images are interleaved*/
+	uint32_t yuvFormat;			/* YUV output mode. Default: h2v2 */
+	uint32_t uvScale;			/* Defines how UV components are scaled in planar mode */
 	uint32_t seqStart;			/* Sequence start for multiple files */
 	uint32_t seqEnd;			/* Sequence end for multiple files */
 	string inFileNamePattern;
@@ -68,7 +78,6 @@ int main(int argc, char* argv[])
 	FIBITMAP *inImage = 0;
 	int lumaWidth, lumaHeight;
 	int chromaWidth, chromaHeight;
-	int size;
 	int x, y, xMask, yMask;
 	unsigned char Rc, Gc, Bc;
 	unsigned char* rgbPixels;
@@ -125,30 +134,30 @@ int main(int argc, char* argv[])
 		lumaHeight = FreeImage_GetHeight(inImage);
 
 		/* Calculate dimensions of destination YUV */
-		switch(cfg.yuvType)
+		switch(cfg.uvScale)
 		{
-		default:
-		case YUV_H2V2:
+		default: /* Default scale h1v1 */
+		case SCALE_H1V1:
+			chromaWidth = lumaWidth;
+			chromaHeight = lumaHeight;
+			xMask = 0;
+			yMask = 0;
+			break;
+		case SCALE_H2V2:
 			chromaWidth = lumaWidth / 2;
 			chromaHeight = lumaHeight / 2;
 			yMask = xMask = 1;
 			break;
-		case YUV_H2V1:
+		case SCALE_H2V1:
 			chromaWidth = lumaWidth;
 			chromaHeight = lumaHeight /2;
 			xMask = 0;
 			yMask = 1;
 			break;
-		case YUV_H1V2:
+		case SCALE_H1V2:
 			chromaWidth = lumaWidth / 2;
 			chromaHeight = lumaHeight;
 			xMask = 1;
-			yMask = 0;
-			break;
-		case YUV_H1V1:
-			chromaWidth = lumaWidth;
-			chromaHeight = lumaHeight;
-			xMask = 0;
 			yMask = 0;
 			break;
 		}
@@ -282,7 +291,8 @@ string ExpandPattern(string pattern, int counter)
 Config::Config()
 {
 	appendMode = false;	/* if not zero append YUV image(s) to output file */
-	yuvType = YUV_H2V2;	/* YUV output mode. Default: h2v2 */
+	yuvFormat = YUV_YUV;	/* YUV output mode. Default: h2v2 */
+	uvScale = SCALE_H1V1;	/* UV scaling for planar mode. Default: h1v1 */
 	seqStart = 0;	/* Sequence start for multiple files */
 	seqEnd = 0;		/* Sequence end for multiple files */
 }
@@ -294,14 +304,17 @@ bool Config::ParseArgs(char* args[], int count)
 
 	vector<string> files;
 	string seqRangeOption;
-	string yuvTypeOption;
+	string yuvFormatOption;
+	string uvScaleOption;
 	bool error = true;
 
 	GetOpt_pp opt(count, args);
 
 	opt >> OptionPresent('a', appendMode);
-	opt >> Option('r', seqRangeOption);
-	opt >> Option('t', yuvTypeOption);
+	opt >> OptionPresent('i', uvInterleave);
+	opt >> Option('m', seqRangeOption);
+	opt >> Option('f', yuvFormatOption);
+	opt >> Option('s', uvScaleOption);
 	opt >> GlobalOption(files);
 
 	if(files.size() > 0)
@@ -315,17 +328,36 @@ bool Config::ParseArgs(char* args[], int count)
 		goto HandleError;
 	}
 
-	if( yuvTypeOption == "h2v2")
-		yuvType = YUV_H2V2;
-	else if(yuvTypeOption == "h1v1")
-		yuvType = YUV_H1V1;
-	else if(yuvTypeOption == "h1v2")
-		yuvType = YUV_H1V2;
-	else if(yuvTypeOption == "h2v1")
-		yuvType = YUV_H2V1;
-	else if( !yuvTypeOption.empty())
+	// Scaling could be overridden by format, then select scale first
+	if( uvScaleOption == "h2v2")
+		uvScale = SCALE_H2V2;
+	else if(uvScaleOption == "h1v1")
+		uvScale = SCALE_H1V1;
+	else if(uvScaleOption == "h1v2")
+		uvScale = SCALE_H1V2;
+	else if(uvScaleOption == "h2v1")
+		uvScale = SCALE_H2V1;
+	else if( !uvScaleOption.empty())
 	{
-		LOG_ERROR("Unknown YUV type...");
+		LOG_ERROR("Unknown UV scaling...");
+		goto HandleError;
+	}
+
+	if( yuvFormatOption == "yuv")
+		yuvFormat = YUV_YUV;
+	else if(yuvFormatOption == "yvu")
+		yuvFormat = YUV_YVU;
+	else if(yuvFormatOption == "yuyv")
+		yuvFormat = YUV_YUYV, uvScale = SCALE_H2V1; // Packed format always h2v1
+	else if(yuvFormatOption == "yvyu")
+		yuvFormat = YUV_YVYU, uvScale = SCALE_H2V1; // Packed format always h2v1
+	else if(yuvFormatOption == "uyvy")
+		yuvFormat = YUV_UYVY, uvScale = SCALE_H2V1; // Packed format always h2v1
+	else if(yuvFormatOption == "vyuy")
+		yuvFormat = YUV_VYUY, uvScale = SCALE_H2V1; // Packed format always h2v1
+	else if( !yuvFormatOption.empty())
+	{
+		LOG_ERROR("Unknown YUV format...");
 		goto HandleError;
 	}
 
@@ -372,19 +404,31 @@ bool Config::ParseSequenceRange(string range)
 void PrintHelp()
 {
 	printf(
-		"\nUsage: yuvit [options] <InFile> <OutFile>\n\n"
+		"\nUsage: yuvit [options] [-f format] [-s uvscale] <InFile> <OutFile>\n\n"
 		"Options:\n"
 		"   -a : Add new image to the end of output file. Don't truncate output file.\n"
-		"   -t <h2v2|h2v1|h1v2|h1v1|uvyv|yuyv> : Type of output YUV image(s).\n"
-		"   -r <start>:<end> : Process multiple input files. Where:\n"
+		"   -m <start>:<end> : Multiple file input. Where:\n"
 		"      start : Sequence start\n"
 		"      end  : Sequence end\n"
+		"	-i : Interleave UV rows for planar formats"
+		"\nFormats (-f option):\n"
+		"	yuv		: Planar format [DEFAULT]\n"
+		"	yvu		: Planar format, reversed UV order\n"
+		"	yuyv	: Packed format\n"
+		"	yvyu	: Packed format\n"
+		"	uyvy	: Packed format\n"
+		"	vyuy	: Packed format\n"
+		"\nUV scales (used only with -f and planar formats):\n"
+		"	h1v1	: UV not scaled down [DEFAULT]\n"
+		"   h2v2	: UV scaled down by 2x horizontally and vertically\n"
+		"	h2v1	: UV scaled down by 2x horizontally\n"
+		"	h1v2	: UV scaled down by 2x vertically\n"
 		"\nNote: Use symbol '#' in file names for enumerators.\n"
 		"\nExamples:\n"
 		"yuvit -a -r=0:100 test###.bmp out.yuv\n"
-		"   Convert images from 'test000.bmp' to 'test100.bmp' into single 'out.yuv' file\n"
-		"\nyuvit.exe -r=10:200 test######.jpg out###.yuv\n"
-		"   Convert images 'test000010.jpg'...'test000200.jpg' into files 'out010.yuv'...'out200.yuv'\n"
+		"		Convert images from 'test000.bmp' to 'test100.bmp' into single 'out.yuv' file\n"
+		"\nyuvit -r=10:200 test######.jpg out###.yuv\n"
+		"		Convert images 'test000010.jpg'...'test000200.jpg' into files 'out010.yuv'...'out200.yuv'\n"
 		"\n"
 		"Converter from different image types to YUV. v" APPVERSION " (C)2011 Shashkevych Alexander\n"
 		);
