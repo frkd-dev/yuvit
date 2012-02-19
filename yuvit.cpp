@@ -420,7 +420,7 @@ void PrintHelp()
 		"	vyuy	: Packed format\n"
 		"\nUV scales (used only with -f and planar formats):\n"
 		"	h1v1	: UV not scaled down [DEFAULT]\n"
-		"   h2v2	: UV scaled down by 2x horizontally and vertically\n"
+		"	h2v2	: UV scaled down by 2x horizontally and vertically\n"
 		"	h2v1	: UV scaled down by 2x horizontally\n"
 		"	h1v2	: UV scaled down by 2x vertically\n"
 		"\nNote: Use symbol '#' in file names for enumerators.\n"
