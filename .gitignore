@@ -2,6 +2,8 @@
 .project
 .cproject
 *.a
+*.a-*
+*.dylib
 *.o
 *.dll
 *.exe

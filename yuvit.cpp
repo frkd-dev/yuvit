@@ -1,24 +1,32 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
 
+#if defined(__MINGW__)
+//#define __declspec(A) __stdcall
+#undef _WIN32
+#undef __WIN32__
+#endif
+
+//extern "C"{
+#define FREEIMAGE_LIB
+
 #include "FreeImage.h"
+//}
+
 #include "getopt_pp.h"
 
-
-#define MAX_PATH 2048
 #define MAJORVERSION "0"
 #define MINORVERSION "1"
 #define APPVERSION MAJORVERSION "." MINORVERSION
 
 using namespace std;
 
-#define LOG_MESSAGE(__MSG__, ...) {printf(__MSG__, __VA_ARGS__); printf("\n");}
-#define LOG_MESSAGE(__MSG__) {printf(__MSG__); printf("\n");}
-#define LOG_ERROR(__MSG__, ...) {printf("ERROR: "); printf(__MSG__, __VA_ARGS__); printf("\n");}
-#define LOG_ERROR(__MSG__) {printf("ERROR: "); printf(__MSG__); printf("\n");}
+#define LOG_MESSAGE(...) {printf(__VA_ARGS__); printf("\n");}
+#define LOG_ERROR(...) {printf("ERROR: "); printf(__VA_ARGS__); printf("\n");}
 
 enum YUVMode {
 	YUV_H2V2,
@@ -32,11 +40,11 @@ enum YUVMode {
 class Config
 {
 public:
-	bool appendMode;	/* if not zero append YUV image(s) to output file */
-	bool yuvType;	/* YUV output mode. Default: h2v2 */
-	bool cSource;	/* Make output as C/C++ source */
-	uint32_t seqStart;	/* Sequence start for multiple files */
-	uint32_t seqEnd;		/* Sequence end for multiple files */
+	bool appendMode;			/* if not zero append YUV image(s) to output file */
+	bool cSource;				/* Make output as C/C++ source */
+	uint32_t yuvType;			/* YUV output mode. Default: h2v2 */
+	uint32_t seqStart;			/* Sequence start for multiple files */
+	uint32_t seqEnd;			/* Sequence end for multiple files */
 	string inFileNamePattern;
 	string outFileNamePattern;
 
@@ -50,7 +58,7 @@ private:
 };
 
 void PrintHelp();
-int ExpandPattern(string pattern, int value);
+string ExpandPattern(string pattern, int counter);
 
 int main(int argc, char* argv[])
 {
@@ -73,12 +81,16 @@ int main(int argc, char* argv[])
 
 	FreeImage_Initialise();
 
-	while(cfg.seqStart <= cfg.seqEnd)
-	{	/* Main cycle for converting all images */
+	LOG_MESSAGE("Processing:");
 
-		/* Expand patterns in filenames */
+	/* First expanding of output filename. If append mode - this is only one place
+	   where name is expanded */
+	outFileName = ExpandPattern(cfg.outFileNamePattern, cfg.seqStart);
+
+	/* Main loop of passing through all images */
+	while(cfg.seqStart <= cfg.seqEnd)
+	{
 		inFileName = ExpandPattern(cfg.inFileNamePattern, cfg.seqStart);
-		outFileName = ExpandPattern(cfg.outFileNamePattern, cfg.seqStart);
 
 		FREE_IMAGE_FORMAT format = FreeImage_GetFileType(inFileName.c_str());
 		if(format == FIF_UNKNOWN)
@@ -91,14 +103,14 @@ int main(int argc, char* argv[])
 
 		if(inImage == 0)
 		{
-			LOG_ERROR("Can't read input image...");
-			goto handleError;
+			LOG_ERROR("Some problem occurred with reading of input image...");
+			goto HandleError;
 		}
 
 		if(cfg.appendMode == 0)
-			hOutFile = fopen( outFileName.c_str(), "wb" ); /* Write in new file */
-		else
-			hOutFile = fopen( outFileName.c_str(), "ab" ); /* Add to existing file */
+			outFileName = ExpandPattern(cfg.outFileNamePattern, cfg.seqStart);
+
+		hOutFile = fopen( outFileName.c_str(), "ab" ); /* Append to existing file */
 
 		if(hOutFile == 0)
 		{
@@ -106,10 +118,12 @@ int main(int argc, char* argv[])
 			goto HandleError;
 		}
 
-		LOG_MESSAGE("Processing: %s", inFileName.c_str());
+		LOG_MESSAGE("\t%s", inFileName.c_str());
+
+		FreeImage_FlipVertical(inImage);
 
 		lumaWidth = FreeImage_GetWidth(inImage);
-		lumaHeight = FreeImage_GetWidth(inImage);
+		lumaHeight = FreeImage_GetHeight(inImage);
 
 		/* Calculate dimensions of destination YUV */
 		switch(cfg.yuvType)
@@ -122,7 +136,7 @@ int main(int argc, char* argv[])
 			break;
 		case YUV_H2V1:
 			chromaWidth = lumaWidth;
-			chromaHeight = lumaHeight / 2;
+			chromaHeight = lumaHeight /2;
 			xMask = 0;
 			yMask = 1;
 			break;
@@ -152,6 +166,7 @@ int main(int argc, char* argv[])
 		for(y = 0; y < lumaHeight; y++)
 		{
 			rgbPixels = FreeImage_GetScanLine(inImage, y);
+
 			for(x = 0; x < lumaWidth; x++)
 			{
 				Rc = *rgbPixels++;
@@ -159,7 +174,7 @@ int main(int argc, char* argv[])
 				Bc = *rgbPixels++;
 
 				*yPtr++ = (0.257f * Rc) + (0.504f * Gc) + (0.098f * Bc) + 16;
-				if((y & yMask) == 0 && (x & xMask) == 0)
+				if((y & yMask) == 0 && (x & xMask) == 0 && (y / 2) < chromaHeight && (x / 2) < chromaWidth)
 				{
 					*uPtr++ = -(0.148f * Rc) - (0.291f * Gc) + (0.439f * Bc) + 128;
 					*vPtr++ = (0.439f * Rc) - (0.368f * Gc) - (0.071f * Bc) + 128;
@@ -218,8 +233,9 @@ int main(int argc, char* argv[])
 			fprintf(hOutFile, "\n};\n");
 		}else{
 			fwrite(yPixels, 1, lumaWidth * lumaHeight, hOutFile);
-			fwrite(uPixels, 1, chromaWidth * chromaHeight, hOutFile);
+
 			fwrite(vPixels, 1, chromaWidth * chromaHeight, hOutFile);
+			fwrite(uPixels, 1, chromaWidth * chromaHeight, hOutFile);
 		}
 
 		FreeImage_Unload(inImage);
@@ -272,8 +288,9 @@ string toString(int value)
 string ExpandPattern(string pattern, int counter)
 {
 	string result;
-	string::iterator it;
+	string::iterator it = pattern.begin();
 	uint32_t cntr = 0;
+	string counterStr = toString(counter);
 
 	// Copy from input pattern to resulting string until we meet '#' sign
 	while( it != pattern.end() && *it != '#') result += *it++;
@@ -288,8 +305,6 @@ string ExpandPattern(string pattern, int counter)
 	// If we not found any patterns - just return unmodified input pattern
 	if( !cntr )
 		return pattern;
-
-	string counterStr = toString(cntr);
 
 	// Determine leading zeros
 	if(cntr > counterStr.length())
@@ -319,7 +334,7 @@ string ExpandPattern(string pattern, int counter)
 Config::Config()
 {
 	appendMode = false;	/* if not zero append YUV image(s) to output file */
-	yuvType = false;	/* YUV output mode. Default: h2v2 */
+	yuvType = YUV_H2V2;	/* YUV output mode. Default: h2v2 */
 	cSource = false;	/* Make output as C/C++ source */
 	seqStart = 0;	/* Sequence start for multiple files */
 	seqEnd = 0;		/* Sequence end for multiple files */
@@ -333,7 +348,7 @@ bool Config::ParseArgs(char* args[], int count)
 	vector<string> files;
 	string seqRangeOption;
 	string yuvTypeOption;
-	bool error = false;
+	bool error = true;
 
 	GetOpt_pp opt(count, args);
 
@@ -350,8 +365,8 @@ bool Config::ParseArgs(char* args[], int count)
 		outFileNamePattern = files[1];
 	else
 	{
-		LOG_ERROR("You've not specified one of filenames...");
-		error = true;
+		LOG_ERROR("You've not specified files to process...");
+		goto HandleError;
 	}
 
 	if( yuvTypeOption == "h2v2")
@@ -362,19 +377,20 @@ bool Config::ParseArgs(char* args[], int count)
 		yuvType = YUV_H1V2;
 	else if(yuvTypeOption == "h2v1")
 		yuvType = YUV_H2V1;
-	else
+	else if( !yuvTypeOption.empty())
 	{
 		LOG_ERROR("Unknown YUV type...");
-		error = true;
+		goto HandleError;
 	}
 
 	if(!seqRangeOption.empty())
 		if(!ParseSequenceRange(seqRangeOption))
 		{
 			LOG_ERROR("You've specified bad sequence range...");
-			error = true;
+			goto HandleError;
 		}
-
+	error = false;
+HandleError:
 	if(error)
 		PrintHelp();
 
@@ -410,22 +426,21 @@ bool Config::ParseSequenceRange(string range)
 void PrintHelp()
 {
 	printf(
-		"-=======================================================================-\n"
-		"  Any 2 YUV convertor v" APPVERSION " (C)2011 Shashkevych Alexander\n"
-		"-=======================================================================-\n"
-		"Usage: any2yuv.exe [options] <InFile> <OutFile>\n\n"
+		"\nUsage: yuvit [options] <InFile> <OutFile>\n\n"
 		"Options:\n"
 		"   -a : Add new image to the end of output file. Don't truncate output file.\n"
 		"   -t <h2v2|h2v1|h1v2|h1v1|uvyv|yuyv> : Type of output YUV image(s).\n"
-		"   -r <start>:<end> : Multiple input file mode. Where:\n"
-		"      first : Sequence start\n"
-		"      last  : Sequence end\n"
+		"   -r <start>:<end> : Process multiple input files. Where:\n"
+		"      start : Sequence start\n"
+		"      end  : Sequence end\n"
 		"   -c : Output as C/C++ source. Default: binary mode\n"
 		"\nNote: Use symbol '#' in file names for enumerators.\n"
 		"\nExamples:\n"
-		"any2yuv.exe -a -r=0:100 test###.bmp out.yuv\n"
+		"yuvit -a -r=0:100 test###.bmp out.yuv\n"
 		"   Convert images from 'test000.bmp' to 'test100.bmp' into single 'out.yuv' file\n"
-		"\nany2yuv.exe -r=10:200 test######.jpg out###.yuv\n"
+		"\nyuvit.exe -r=10:200 test######.jpg out###.yuv\n"
 		"   Convert images 'test000010.jpg'...'test000200.jpg' into files 'out010.yuv'...'out200.yuv'\n"
+		"\n"
+		"Converter from different image types to YUV. v" APPVERSION " (C)2011 Shashkevych Alexander\n"
 		);
 }
