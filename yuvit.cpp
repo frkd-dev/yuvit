@@ -406,7 +406,7 @@ void PrintHelp()
 		"	-i : Interleave UV rows for planar formats\n"
 		"	-r : Reverse UV order to VU\n"
 		"\nFormats (-f option):\n"
-		"	yuv		: Planar format [DEFAULT]\n"
+		"	yuv	: Planar format [DEFAULT]\n"
 		"	yuyv	: Packed format\n"
 		"	uyvy	: Packed format\n"
 		"\nUV scales (used only with -f and planar formats):\n"
