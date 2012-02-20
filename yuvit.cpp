@@ -30,9 +30,6 @@ using namespace std;
 
 enum YUVFormat {
 	YUV_YUV,
-	YUV_YVU,
-	YUV_YVYU,
-	YUV_VYUY,
 	YUV_UYVY,
 	YUV_YUYV
 };
@@ -50,6 +47,7 @@ class Config
 public:
 	bool appendMode;			/* if not zero append YUV image(s) to output file */
 	bool uvInterleave;			/* if not zero, UV rows in planar images are interleaved*/
+	bool uvOrderReversed;				/**/
 	uint32_t yuvFormat;			/* YUV output mode. Default: h2v2 */
 	uint32_t uvScale;			/* Defines how UV components are scaled in planar mode */
 	uint32_t seqStart;			/* Sequence start for multiple files */
@@ -312,6 +310,7 @@ bool Config::ParseArgs(char* args[], int count)
 
 	opt >> OptionPresent('a', appendMode);
 	opt >> OptionPresent('i', uvInterleave);
+	opt >> OptionPresent('r', uvOrderReversed);
 	opt >> Option('m', seqRangeOption);
 	opt >> Option('f', yuvFormatOption);
 	opt >> Option('s', uvScaleOption);
@@ -345,16 +344,10 @@ bool Config::ParseArgs(char* args[], int count)
 
 	if( yuvFormatOption == "yuv")
 		yuvFormat = YUV_YUV;
-	else if(yuvFormatOption == "yvu")
-		yuvFormat = YUV_YVU;
 	else if(yuvFormatOption == "yuyv")
 		yuvFormat = YUV_YUYV, uvScale = SCALE_H2V1; // Packed format always h2v1
-	else if(yuvFormatOption == "yvyu")
-		yuvFormat = YUV_YVYU, uvScale = SCALE_H2V1; // Packed format always h2v1
 	else if(yuvFormatOption == "uyvy")
 		yuvFormat = YUV_UYVY, uvScale = SCALE_H2V1; // Packed format always h2v1
-	else if(yuvFormatOption == "vyuy")
-		yuvFormat = YUV_VYUY, uvScale = SCALE_H2V1; // Packed format always h2v1
 	else if( !yuvFormatOption.empty())
 	{
 		LOG_ERROR("Unknown YUV format...");
@@ -411,13 +404,11 @@ void PrintHelp()
 		"      start : Sequence start\n"
 		"      end  : Sequence end\n"
 		"	-i : Interleave UV rows for planar formats"
+		"	-r : Reverse UV order to VU"
 		"\nFormats (-f option):\n"
 		"	yuv		: Planar format [DEFAULT]\n"
-		"	yvu		: Planar format, reversed UV order\n"
 		"	yuyv	: Packed format\n"
-		"	yvyu	: Packed format\n"
 		"	uyvy	: Packed format\n"
-		"	vyuy	: Packed format\n"
 		"\nUV scales (used only with -f and planar formats):\n"
 		"	h1v1	: UV not scaled down [DEFAULT]\n"
 		"	h2v2	: UV scaled down by 2x horizontally and vertically\n"
