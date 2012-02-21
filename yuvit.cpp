@@ -47,7 +47,7 @@ class Config
 public:
 	bool appendMode;			/* if not zero append YUV image(s) to output file */
 	bool uvInterleave;			/* if not zero, UV rows in planar images are interleaved*/
-	bool uvOrderReversed;				/**/
+	bool uvOrderSwap;				/**/
 	uint32_t yuvFormat;			/* YUV output mode. Default: h2v2 */
 	uint32_t uvScale;			/* Defines how UV components are scaled in planar mode */
 	uint32_t seqStart;			/* Sequence start for multiple files */
@@ -74,13 +74,14 @@ int main(int argc, char* argv[])
 	FILE* hOutFile;
 	uint8_t errorFlag = 1; // By default we will exiting with error
 	FIBITMAP *inImage = 0;
-	int lumaWidth, lumaHeight;
-	int chromaWidth, chromaHeight;
-	int x, y, xMask, yMask;
-	unsigned char Rc, Gc, Bc;
-	unsigned char* rgbPixels;
-	unsigned char *yPixels, *uPixels, *vPixels;
-	unsigned char *yPtr, *uPtr, *vPtr;
+	uint32_t lumaWidth, lumaHeight;
+	uint32_t chromaWidth, chromaHeight;
+	uint32_t x, y, xMask, yMask;
+	uint8_t Rc, Gc, Bc;
+	uint8_t *rgbPixels;
+	uint8_t *yPixels, *uPixels, *vPixels;
+	uint8_t *yPtr, *uPtr, *vPtr;
+	bool warned = false;
 
 	if(!cfg.ParseArgs(argv, argc))
 		exit(1);
@@ -113,10 +114,10 @@ int main(int argc, char* argv[])
 			goto HandleError;
 		}
 
-		if(cfg.appendMode == 0)
+		if( !cfg.appendMode )
 			outFileName = ExpandPattern(cfg.outFileNamePattern, cfg.seqStart);
 
-		hOutFile = fopen( outFileName.c_str(), "ab" ); /* Append to existing file */
+		hOutFile = fopen( outFileName.c_str(), cfg.appendMode ? "ab" : "wb" );
 
 		if(hOutFile == 0)
 		{
@@ -124,14 +125,26 @@ int main(int argc, char* argv[])
 			goto HandleError;
 		}
 
-		LOG_MESSAGE("\t%s", inFileName.c_str());
-
-		FreeImage_FlipVertical(inImage);
-
 		lumaWidth = FreeImage_GetWidth(inImage);
 		lumaHeight = FreeImage_GetHeight(inImage);
 
-		/* Calculate dimensions of destination YUV */
+		LOG_MESSAGE("\t%s [%dx%d]", inFileName.c_str(), lumaWidth, lumaHeight);
+
+		if( (lumaWidth & 1) && cfg.yuvFormat != YUV_YUV)
+		{
+			LOG_ERROR("Width of source image is odd - this is incompatible with packed format...");
+			goto HandleError;
+		}
+
+		if( !warned && ((lumaWidth & 1) || (lumaHeight & 1)) && cfg.yuvFormat == YUV_YUV)
+		{
+			LOG_MESSAGE("Warning! Dimensions of the source image are odd. This may cause incompatibility with some YUV viewers.");
+			warned = true; // Show warning only once
+		}
+
+		FreeImage_FlipVertical(inImage);
+
+		/* Calculate dimensions of destination UV components */
 		switch(cfg.uvScale)
 		{
 		default: /* Default scale h1v1 */
@@ -160,10 +173,12 @@ int main(int argc, char* argv[])
 			break;
 		}
 
-		yPixels = (unsigned char*)malloc(lumaHeight * lumaWidth);
-		uPixels = (unsigned char*)malloc(chromaHeight * chromaWidth);
-		vPixels = (unsigned char*)malloc(chromaHeight * chromaWidth);
+		// Pointers that are always pointing on buffers
+		yPixels = new uint8_t[lumaHeight * lumaWidth];
+		uPixels = new uint8_t[chromaHeight * chromaWidth];
+		vPixels = new uint8_t[chromaHeight * chromaWidth];
 
+		// Pointers we are working with
 		yPtr = yPixels;
 		uPtr = uPixels;
 		vPtr = vPixels;
@@ -188,10 +203,63 @@ int main(int argc, char* argv[])
 			}
 		}
 
+		if(cfg.uvOrderSwap)
+		{	// UV components should be swapped, so just swap pointers
+			uint8_t* tmp = uPixels;
+			uPixels = vPixels;
+			vPixels = tmp;
+		}
 
-		fwrite(yPixels, 1, lumaWidth * lumaHeight, hOutFile);
-		fwrite(vPixels, 1, chromaWidth * chromaHeight, hOutFile);
-		fwrite(uPixels, 1, chromaWidth * chromaHeight, hOutFile);
+		yPtr = yPixels;
+		uPtr = uPixels;
+		vPtr = vPixels;
+
+		if(cfg.yuvFormat == YUV_YUV)
+		{	// Writing planar image
+			fwrite(yPixels, 1, lumaWidth * lumaHeight, hOutFile);
+
+			if(cfg.uvInterleave)
+			{	// U and V rows should be interleaved after each other
+				while(chromaHeight--)
+				{
+					fwrite(uPtr, 1, chromaWidth, hOutFile); // Write U line
+					fwrite(vPtr, 1, chromaWidth, hOutFile); // Write V line
+					uPtr += chromaWidth;
+					vPtr += chromaWidth;
+				}
+			}else{
+				// Simply write U and V planes
+				fwrite(uPixels, 1, chromaWidth * chromaHeight, hOutFile);
+				fwrite(vPixels, 1, chromaWidth * chromaHeight, hOutFile);
+			}
+		}else{
+			// Writing packed image
+			if(cfg.yuvFormat == YUV_YUYV)
+			{
+				for(uint32_t row = 0; row < chromaHeight; row++)
+				{
+					for(uint32_t col = 0; col < chromaWidth; col += 2)
+					{	// Write in following order Y, U, Y, V
+						fwrite(yPtr++, 1, 1, hOutFile);
+						fwrite(uPtr++, 1, 1, hOutFile);
+						fwrite(yPtr++, 1, 1, hOutFile);
+						fwrite(vPtr++, 1, 1, hOutFile);
+					}
+				}
+			}else{
+				for(uint32_t row = 0; row < chromaHeight; row++)
+				{
+					for(uint32_t col = 0; col < chromaWidth; col += 2)
+					{	// Write in following order U, Y, V, Y
+						fwrite(uPtr++, 1, 1, hOutFile);
+						fwrite(yPtr++, 1, 1, hOutFile);
+						fwrite(vPtr++, 1, 1, hOutFile);
+						fwrite(yPtr++, 1, 1, hOutFile);
+					}
+				}
+			}
+		}
+
 
 		FreeImage_Unload(inImage);
 		inImage = 0;
@@ -199,9 +267,9 @@ int main(int argc, char* argv[])
 		fclose(hOutFile);
 		hOutFile = 0;
 
-		free(yPixels);
-		free(uPixels);
-		free(vPixels);
+		delete yPixels;
+		delete uPixels;
+		delete vPixels;
 
 		cfg.seqStart++;
 	}
@@ -310,7 +378,7 @@ bool Config::ParseArgs(char* args[], int count)
 
 	opt >> OptionPresent('a', appendMode);
 	opt >> OptionPresent('i', uvInterleave);
-	opt >> OptionPresent('r', uvOrderReversed);
+	opt >> OptionPresent('w', uvOrderSwap);
 	opt >> Option('m', seqRangeOption);
 	opt >> Option('f', yuvFormatOption);
 	opt >> Option('s', uvScaleOption);
@@ -404,12 +472,12 @@ void PrintHelp()
 		"		start : Sequence start\n"
 		"		end  : Sequence end\n"
 		"	-i : Interleave UV rows for planar formats\n"
-		"	-r : Reverse UV order to VU\n"
+		"	-w : Swap UV components order\n"
 		"\nFormats (-f option):\n"
 		"	yuv	: Planar format [DEFAULT]\n"
 		"	yuyv	: Packed format\n"
 		"	uyvy	: Packed format\n"
-		"\nUV scales (used only with -f and planar formats):\n"
+		"\nUV scales (-s option. Used only with -f and planar formats):\n"
 		"	h1v1	: UV not scaled down [DEFAULT]\n"
 		"	h2v2	: UV scaled down by 2x horizontally and vertically\n"
 		"	h2v1	: UV scaled down by 2x horizontally\n"
