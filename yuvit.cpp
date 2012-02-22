@@ -159,13 +159,13 @@ int main(int argc, char* argv[])
 			chromaHeight = lumaHeight / 2;
 			yMask = xMask = 1;
 			break;
-		case SCALE_H2V1:
+		case SCALE_H1V2:
 			chromaWidth = lumaWidth;
-			chromaHeight = lumaHeight /2;
+			chromaHeight = lumaHeight / 2;
 			xMask = 0;
 			yMask = 1;
 			break;
-		case SCALE_H1V2:
+		case SCALE_H2V1:
 			chromaWidth = lumaWidth / 2;
 			chromaHeight = lumaHeight;
 			xMask = 1;
@@ -236,9 +236,9 @@ int main(int argc, char* argv[])
 			// Writing packed image
 			if(cfg.yuvFormat == YUV_YUYV)
 			{
-				for(uint32_t row = 0; row < chromaHeight; row++)
+				for(uint32_t row = 0; row < lumaHeight; row++)
 				{
-					for(uint32_t col = 0; col < chromaWidth; col += 2)
+					for(uint32_t col = 0; col < lumaWidth; col += 2)
 					{	// Write in following order Y, U, Y, V
 						fwrite(yPtr++, 1, 1, hOutFile);
 						fwrite(uPtr++, 1, 1, hOutFile);
@@ -247,9 +247,9 @@ int main(int argc, char* argv[])
 					}
 				}
 			}else{
-				for(uint32_t row = 0; row < chromaHeight; row++)
+				for(uint32_t row = 0; row < lumaHeight; row++)
 				{
-					for(uint32_t col = 0; col < chromaWidth; col += 2)
+					for(uint32_t col = 0; col < lumaWidth; col += 2)
 					{	// Write in following order U, Y, V, Y
 						fwrite(uPtr++, 1, 1, hOutFile);
 						fwrite(yPtr++, 1, 1, hOutFile);
