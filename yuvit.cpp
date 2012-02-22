@@ -6,16 +6,13 @@
 #include <vector>
 
 #if defined(__MINGW__)
-//#define __declspec(A) __stdcall
 #undef _WIN32
 #undef __WIN32__
 #endif
 
-//extern "C"{
 #define FREEIMAGE_LIB
 
 #include "FreeImage.h"
-//}
 
 #include "getopt_pp.h"
 
