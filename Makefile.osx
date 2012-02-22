@@ -7,7 +7,7 @@ LIBS = -lfreeimage -lstdc++
 CPUS=$(shell sysctl -n hw.ncpu)
 
 CXX=g++
-CXXFLAGS = -Wall -O3 -I FreeImage/Dist -L FreeImage/Dist
+CXXFLAGS = -arch i386 -Wall -Os -I FreeImage/Dist -L FreeImage/Dist
 
 default : $(APPNAME)
 
