@@ -15,3 +15,5 @@ default:
 clean:
 	@$(MAKE) -f Makefile.$(MAKEFILE) clean 
 
+install:
+	@$(MAKE) -f Makefile.$(MAKEFILE) install 

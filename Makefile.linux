@@ -1,10 +1,15 @@
 APPNAME=yuvit
 
+DESTDIR ?= /
+INCDIR ?= $(DESTDIR)/usr/include
+INSTALLDIR ?= $(DESTDIR)/usr/bin
+
+
 SOURCES=$(wildcard *.cpp)
 OBJECTS=$(patsubst %.cpp,%.o,$(SOURCES))
 STATICLIB=$(APPNAME).a
 LIBS = -lfreeimage -lstdc++
-CPUS=$(cat /proc/cpuinfo | grep processor | wc -l)
+CPUS=$(shell cat /proc/cpuinfo | grep processor | wc -l)
 
 CXX=g++
 CXXFLAGS = -Wall -O3 -I FreeImage/Dist -L FreeImage/Dist
@@ -20,11 +25,15 @@ $(STATICLIB) : $(OBJECTS)
 $(APPNAME): FreeImage $(STATICLIB)
 	@$(CXX) -o $@ $(STATICLIB) $(LIBS) $(CXXFLAGS) 	
 
-FreeImage:
+FreeImage :
 	@$(MAKE) --jobs=$(CPUS) --directory=FreeImage -f Makefile.gnu
 
 clean :
 	@$(MAKE) --directory=FreeImage -f Makefile.gnu clean
 	$(RM) $(OBJECTS) $(APPNAME) $(STATICLIB)
 
-.PHONY : clean FreeImage
+install :
+	install -d $(INSTALLDIR)
+	install -m 755 -o root -g root $(APPNAME) $(INSTALLDIR)
+
+.PHONY : clean FreeImage install

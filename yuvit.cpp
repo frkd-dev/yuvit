@@ -486,6 +486,8 @@ void PrintHelp()
 		"\nyuvit -r 10:200 test######.jpg out###.yuv\n"
 		"		Convert images 'test000010.jpg'...'test000200.jpg' into files 'out010.yuv'...'out200.yuv'\n"
 		"\n"
-		"Converter from different image types to YUV. v" APPVERSION " (C)2011 Shashkevych Alexander\n"
+		"Converter to YUV. v" APPVERSION "\n"
+		"(c) 2011-2012 Alexander Shashkevych\n"
+		"This tool licensed under LGPL\n"
 		);
 }
