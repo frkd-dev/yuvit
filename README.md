@@ -19,10 +19,10 @@ USAGE
                     start : Sequence start
                     end  : Sequence end
                 -i : Interleave UV rows for planar formats
-	        -w : Swap UV components order
+                -w : Swap UV components order
 
         Formats (-f option):
-	        yuv  : Planar format [DEFAULT]
+                yuv  : Planar format [DEFAULT]
                 yuyv : Packed format
                 uyvy : Packed format
 
