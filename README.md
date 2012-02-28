@@ -98,7 +98,7 @@ Here are examples of how 4x4 pixels image can be stored in YUV format depending 
         YYYY
         YYYY
         VVUU
-        UUUU
+        VVUU
 
 AUTHOR
 ======
