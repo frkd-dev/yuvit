@@ -47,6 +47,7 @@ YUV Formats
 Here are examples of how 4x4 pixels image can be stored in YUV format depending on options (not all possible cases are shown).
  
 1) -f yuv -s h1v1 [Default]
+
         YYYY
         YYYY
         UUUU
@@ -55,6 +56,7 @@ Here are examples of how 4x4 pixels image can be stored in YUV format depending 
         VVVV
 
 2) -f yuv -s h2v1
+
         YYYY
         YYYY
         UU
@@ -63,30 +65,36 @@ Here are examples of how 4x4 pixels image can be stored in YUV format depending 
         VV
 
 3) -f yuv -s h1v2
+
         YYYY
         YYYY
         UUUU
         VVVV
 
 4) -f yuv -s h2v1 -i
+
         YYYY
         YYYY
         UUVV
         UUVV
 
 5) -f yuyv
+
         YUYVYUYV
         YUYVYUYV
 
 6) -f uyvy
+
         UYVYUYVY
         UYVYUYVY
 
 7) -f yuyv -w
+
         YVYUYVYU
         YVYUYVYU
 
 8) -f yuv -s h2v1 -i -w
+
         YYYY
         YYYY
         VVUU
