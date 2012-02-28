@@ -1,5 +1,5 @@
-YUVIT
-=====
+# YUVIT
+
 
 YUVIT is a command line tool that can convert images into YUV sequences or streams. This tool has two major benefits: wide formats support for output yuv images and wide formats support for input images. 
 
@@ -8,8 +8,7 @@ This tool was started in far 2005 and I released it on Sourceforge as any2yuv. I
 Meet the YUVIT for Mac, Windows and Linux. It's simply better then its predecessor. Now YUVIT uses FreeImage library, which provides support for tens image codecs like jpeg, tiff, png, pcx, bmp, gif and so on. 
 
 
-USAGE
-=====
+# USAGE
 
         yuvit [options] [-f format] [-s uvscale] <InFile> <OutFile>
 
@@ -41,8 +40,7 @@ USAGE
             yuvit -m 10:200 test######.jpg out###.yuv
                     Convert images 'test000010.jpg'...'test000200.jpg' into files 'out010.yuv'...'out200.yuv'
 
-YUV Formats
-===========
+# YUV Formats
 
 Here are examples of how 4x4 pixels image can be stored in YUV format depending on options (not all possible cases are shown).
  
@@ -92,12 +90,10 @@ Here are examples of how 4x4 pixels image can be stored in YUV format depending 
         VVUU
         UUUU
 
-AUTHOR
-======
+# AUTHOR
 
 (c) 2005-2012 Alexander Shashkevych <alexander()stunpix.com>
 
-LICENSE
-=======
+# LICENSE
 
 YUVIT code is licensed under LGPL. Code of 
