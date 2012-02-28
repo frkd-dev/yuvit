@@ -3,12 +3,12 @@ YUVIT
 
 YUVIT is a command line tool that can convert images into YUV sequences or streams. This tool has two major benefits: wide formats support for output yuv images and wide formats support for input images. 
 
-This tool was started in far 2005 and I released it on Sourceforge as any2yuv. It was based on open source library named Corona (died in far-far 2003). I didn't maintained it since it was published, therefore it missed functionality, sources were unorganized and so on. But in 2011 I got several requests and bug reports about this tool. After that I decided to rewrite this tool from scratch.
+This tool was started in far 2005 and was released as any2yuv on Sourceforge in 2006. It was based on Corona open source imaging library which development has been stopped in far-far 2003. I didn't maintained any2yuv since it was released, therefore it missed functionality and some bugs. But in 2011 I got several requests and bug reports about this tool. After that was decided to rewrite this tool from scratch.
 
 Meet the YUVIT for Mac, Windows and Linux. It's simply better then its predecessor. Now YUVIT uses FreeImage library, which provides support for tens image codecs like jpeg, tiff, png, pcx, bmp, gif and so on. 
 
 
-USAGE
+Usage
 =====
 
         yuvit [options] [-f format] [-s uvscale] <InFile> <OutFile>
@@ -27,10 +27,10 @@ USAGE
                 uyvy : Packed format
 
         UV scales (-s option. Used only with -f and planar formats):
-	        h1v1 : UV not scaled down [DEFAULT]
-	        h2v2 : UV scaled down by 2x horizontally and vertically
-	        h2v1 : UV scaled down by 2x horizontally
-	        h1v2 : UV scaled down by 2x vertically
+                h1v1 : UV not scaled down [DEFAULT]
+                h2v2 : UV scaled down by 2x horizontally and vertically
+                h2v1 : UV scaled down by 2x horizontally
+                h1v2 : UV scaled down by 2x vertically
 
         Note: Use symbol '#' in file names for enumerators.
 
@@ -100,12 +100,12 @@ Here are examples of how 4x4 pixels image can be stored in YUV format depending 
         VVUU
         VVUU
 
-AUTHOR
+Author
 ======
 
 (c) 2005-2012 Alexander Shashkevych <alexander()stunpix.com>
 
-LICENSE
+License
 =======
 
 YUVIT code is licensed under LGPL. Code of FreeImage and image codecs are distributed under their own licenses.
