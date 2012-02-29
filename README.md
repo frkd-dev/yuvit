@@ -1,7 +1,7 @@
 YUVIT
 =====
 
-YUVIT is a command line tool that can convert images into YUV sequences or streams. This tool has two major benefits: wide formats support for output yuv images and wide formats support for input images. 
+YUVIT is open source command line tool that can convert images into YUV sequences or streams. This tool has two major benefits: wide formats support for output yuv images and wide formats support for input images. 
 
 This tool was started in far 2005 and was released as any2yuv on Sourceforge in 2006. It was based on Corona open source imaging library which development has been stopped in far-far 2003. I didn't maintained any2yuv since it was released, therefore it missed functionality and some bugs. But in 2011 I got several requests and bug reports about this tool. After that was decided to rewrite this tool from scratch.
 
