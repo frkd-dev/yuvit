@@ -16,9 +16,14 @@
 
 #include "getopt_pp.h"
 
+// Version numbering
+//		Major:	App significantly changed
+//		Minor:	Some features added
+//		Nano: 	Bug fixes, improvements
 #define MAJORVERSION "0"
 #define MINORVERSION "1"
-#define APPVERSION MAJORVERSION "." MINORVERSION
+#define NANOVERSION  "1"
+#define APPVERSION MAJORVERSION "." MINORVERSION "." NANOVERSION
 
 using namespace std;
 
@@ -382,15 +387,16 @@ bool Config::ParseArgs(char* args[], int count)
 	opt >> GlobalOption(files);
 
 	if(files.size() > 0)
-		inFileNamePattern = files[0];
-
-	if(files.size() >= 1)
-		outFileNamePattern = files[1];
-	else
 	{
+		inFileNamePattern = files[0];
+		outFileNamePattern = files[0] + ".yuv"; // If output didn't been specified, we will use original name + .yuv
+	} else {
 		LOG_ERROR("You've not specified files to process...");
 		goto HandleError;
 	}
+
+	if(files.size() > 1)
+		outFileNamePattern = files[1]; // Output file was specified, use its name
 
 	// Scaling could be overridden by format, then select scale first
 	if( uvScaleOption == "h2v2")
@@ -462,7 +468,7 @@ bool Config::ParseSequenceRange(string range)
 void PrintHelp()
 {
 	printf(
-		"\nUsage: yuvit [options] [-f format] [-s uvscale] <InFile> <OutFile>\n\n"
+		"\nUsage: yuvit [options] [-f format] [-s uvscale] <InFile> [OutFile]\n\n"
 		"Options:\n"
 		"	-a : Add new image to the end of output file. Don't truncate output file.\n"
 		"	-m <start>:<end> : Multiple file input. Where:\n"

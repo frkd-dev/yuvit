@@ -11,7 +11,7 @@ Meet the YUVIT for Mac, Windows and Linux. It's simply better then its predecess
 Usage
 =====
 
-        yuvit [options] [-f format] [-s uvscale] <InFile> <OutFile>
+        yuvit [options] [-f format] [-s uvscale] <InFile> [OutFile]
 
         Options:
                 -a : Add new image to the end of output file. Don't truncate output file.
