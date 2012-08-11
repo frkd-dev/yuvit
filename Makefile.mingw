@@ -1,37 +1,30 @@
-APPNAME=yuvit.exe
+include Common.mk
 
-SOURCES=$(wildcard *.cpp)
-OBJECTS=$(patsubst %.cpp,%.o,$(SOURCES))
-STATICLIB=$(APPNAME).a
-LIBS = -lfreeimage -lstdc++ -lwsock32 -lws2_32
-INSTALLDIR=win32
+SOURCES = $(wildcard *.cpp)
+OBJECTS = $(SOURCES:.cpp=.o)
+APPEXEC = $(APPNAME).exe
 
-CXX=g++
-CXXFLAGS = -Wall -O3 -I FreeImage/Dist -L FreeImage/Dist
+CXX = g++
+CXXFLAGS = -Wall -O3 -I FreeImage/Dist -DAPPVERSION=\"$(APPVERSION)\"
+LINKFLAGS = -static
+LINKLIBS = -lstdc++ -lwsock32 -lws2_32
 
-default : $(APPNAME)
+default : $(APPEXEC)
 
 %.o : %.cpp
 	@$(CXX) $(CXXFLAGS) -o $@ -c $<
 
-dirs:
-	@if [[ ! -d $(INSTALLDIR) ]]; then mkdir $(INSTALLDIR); fi
+$(APPEXEC) : FreeImage $(OBJECTS)
+	@$(CXX) -o $(APPEXEC) $(LINKFLAGS) $(OBJECTS) FreeImage/Dist/FreeImage.a $(LINKLIBS)
 
-$(STATICLIB) : $(OBJECTS)
-	@$(AR) rs $@ $(OBJECTS)
-
-$(APPNAME): FreeImage $(STATICLIB) dirs
-	@$(CXX) -o $@ $(STATICLIB) $(LIBS) $(CXXFLAGS)
-	mv $(APPNAME) $(INSTALLDIR)/
-
-# FreeImage's Makefile.mingw is intended for "compile under MinGW, use under MSVC", but we
-# need "compile under Mingw, use under Mingw", so we use Makefile.cygwin with some overrides
-FreeImage:
-	@$(MAKE) --jobs=$(NUMBER_OF_PROCESSORS) --directory=FreeImage -f Makefile.cygwin COMPILERFLAGS='-O3 -DNO_LCMS -DFREEIMAGE_LIB -D"__declspec(_a_)="' LIBRARIES="-lstdc++ -lwsock32 -lws2_32"
-	@$(RM) FreeImage/Dist/*.dll FreeImage/Dist/*.dll.a 
+FreeImage :
+	@$(MAKE) --jobs=$(NUMBER_OF_PROCESSORS) --directory=FreeImage -f Makefile.mingw FREEIMAGE_LIBRARY_TYPE=STATIC
 
 clean :
-	@$(MAKE) --directory=FreeImage -f Makefile.cygwin clean
-	@$(RM) $(OBJECTS) $(APPNAME) $(STATLIB)
+	@$(MAKE) --directory=FreeImage -f Makefile.mingw FREEIMAGE_LIBRARY_TYPE=STATIC clean
+	@$(RM) $(OBJECTS) $(APPEXEC)
+
+package : default
+	zip $(APPNAME)_$(APPVERSION)_win.zip $(APPEXEC)
 
 .PHONY : clean FreeImage

@@ -1,0 +1,11 @@
+Package: yuvit
+Version: 0.1.1-1
+Architecture: i386
+Depends: libstdc++6 (>= 4.4.0)
+Maintainer: Alexander Shashkevych <alexander@stunpix.com>
+Section: misc
+Description: Tool for conversion from diffrent images to YUV
+ YUVIT is open source command line tool that can convert images
+ into YUV sequences or streams. This tool has two major benefits:
+ wide formats support for output yuv images and wide formats
+ support for input images.

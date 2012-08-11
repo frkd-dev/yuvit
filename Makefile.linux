@@ -1,39 +1,35 @@
-APPNAME=yuvit
+include Common.mk
 
-DESTDIR ?= /
-INCDIR ?= $(DESTDIR)/usr/include
-INSTALLDIR ?= $(DESTDIR)/usr/bin
+INSTALLDIR = _linux
 
+SOURCES = $(wildcard *.cpp)
+OBJECTS = $(SOURCES:.cpp=.o)
+LIBS = -lstdc++
+CPUS = $(shell cat /proc/cpuinfo | grep processor | wc -l)
 
-SOURCES=$(wildcard *.cpp)
-OBJECTS=$(patsubst %.cpp,%.o,$(SOURCES))
-STATICLIB=$(APPNAME).a
-LIBS = -lfreeimage -lstdc++
-CPUS=$(shell cat /proc/cpuinfo | grep processor | wc -l)
-
-CXX=g++
-CXXFLAGS = -Wall -O3 -I FreeImage/Dist -L FreeImage/Dist
+CXX = g++
+CXXFLAGS = -Wall -O3 -I FreeImage/Dist -DAPPVERSION=\"$(APPVERSION)\"
 
 default : $(APPNAME)
 
 %.o : %.cpp
 	@$(CXX) $(CXXFLAGS) -o $@ -c $<
 
-$(STATICLIB) : $(OBJECTS)
-	@$(AR) rs $@ $(OBJECTS)
-
-$(APPNAME): FreeImage $(STATICLIB)
-	@$(CXX) -o $@ $(STATICLIB) $(LIBS) $(CXXFLAGS) 	
+$(APPNAME) : FreeImage $(OBJECTS)
+	@$(CXX) -o $@ $(CXXFLAGS) $(OBJECTS) FreeImage/Dist/libfreeimage.a $(LIBS)
 
 FreeImage :
 	@$(MAKE) --jobs=$(CPUS) --directory=FreeImage -f Makefile.gnu
 
 clean :
 	@$(MAKE) --directory=FreeImage -f Makefile.gnu clean
-	$(RM) $(OBJECTS) $(APPNAME) $(STATICLIB)
+	$(RM) $(OBJECTS) $(APPNAME)
 
-install :
-	install -d $(INSTALLDIR)
-	install -m 755 -o root -g root $(APPNAME) $(INSTALLDIR)
+package : default
+	mkdir -p $(INSTALLDIR)/usr/bin
+	cp $(APPNAME) $(INSTALLDIR)/usr/bin
+	cp -r packages/DEBIAN $(INSTALLDIR)
+	fakeroot dpkg -b $(APPNAME)_$(APPVERSION)_i386.deb $(INSTALLDIR)
+	rm -rf $(INSTALLDIR)
 
 .PHONY : clean FreeImage install

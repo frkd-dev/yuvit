@@ -1,21 +1,21 @@
-APPNAME=yuvit
+include Common.mk
+
 APPNAME_32 = $(APPNAME)
 APPNAME_64 = $(APPNAME)_x64
 
 SOURCES = $(wildcard *.cpp)
 OBJECTS_32 = $(SOURCES:.cpp=.o-i386)
 OBJECTS_64 = $(SOURCES:.cpp=.o-x86_64)
-STATICLIB = $(APPNAME).a
-STATICLIB_32 = $(STATICLIB)-i386
-STATICLIB_64 = $(STATICLIB)-x86_64
-LIBS = -lfreeimage -lstdc++
+LINKLIBS = -lstdc++
 CPUS=$(shell sysctl -n hw.ncpu)
 
 CXX_32=g++
 CXX_64=g++
-CXXFLAGS = -Wall -Os -I FreeImage/Dist -L FreeImage/Dist
-CXXFLAGS_32 = -arch i386 $(CXXFLAGS)
-CXXFLAGS_64 = -arch x86_64 $(CXXFLAGS)
+ARCH_32 = -arch i386
+ARCH_64 = -arch x86_64
+CXXFLAGS = -Wall -Os -I FreeImage/Dist -DAPPVERSION=\"$(APPVERSION)\"
+CXXFLAGS_32 = $(ARCH_32) $(CXXFLAGS)
+CXXFLAGS_64 = $(ARCH_64) $(CXXFLAGS)
 
 default : $(APPNAME_32) $(APPNAME_64)
 
@@ -25,23 +25,20 @@ default : $(APPNAME_32) $(APPNAME_64)
 %.o-x86_64 : %.cpp
 	@$(CXX) $(CXXFLAGS_64) -o $@ -c $<
 
-$(STATICLIB_32) : $(OBJECTS_32)
-	@$(AR) rs $@ $(OBJECTS_32)
+$(APPNAME_32): FreeImage $(OBJECTS_32)
+	@$(CXX_32) -o $@ $(ARCH_32) $(OBJECTS_32) FreeImage/Dist/libfreeimage.a $(LINKLIBS)
 
-$(STATICLIB_64) : $(OBJECTS_64)
-	@$(AR) rs $@ $(OBJECTS_64)
-
-$(APPNAME_32): FreeImage $(STATICLIB_32)
-	@$(CXX_32) -o $@ $(STATICLIB_32) $(LIBS) $(CXXFLAGS_32) 	
-
-$(APPNAME_64): FreeImage $(STATICLIB_64)
-	@$(CXX_64) -o $@ $(STATICLIB_64) $(LIBS) $(CXXFLAGS_64)
+$(APPNAME_64): FreeImage $(OBJECTS_64)
+	@$(CXX_64) -o $@ $(ARCH_64) $(OBJECTS_64) FreeImage/Dist/libfreeimage.a $(LINKLIBS)
 
 FreeImage:
-	@$(MAKE) --jobs=$(CPUS) --directory=FreeImage -f Makefile.osx
+	@make --jobs=$(CPUS) --directory=FreeImage -f Makefile.osx
 
 clean :
-	@$(MAKE) --directory=FreeImage -f Makefile.osx clean
-	$(RM) $(OBJECTS) $(APPNAME) $(STATICLIB)
+	@make --directory=FreeImage -f Makefile.osx clean
+	@rm $(OBJECTS_32) $(OBJECTS_64) $(APPNAME_32) $(APPNAME_64)
+
+package: default
+	@zip $(APPNAME)_$(APPVERSION)_mac.zip $(APPNAME_32) $(APPNAME_64)
 
 .PHONY : clean FreeImage

@@ -16,15 +16,6 @@
 
 #include "getopt_pp.h"
 
-// Version numbering
-//		Major:	App significantly changed
-//		Minor:	Some features added
-//		Nano: 	Bug fixes, improvements
-#define MAJORVERSION "0"
-#define MINORVERSION "1"
-#define NANOVERSION  "1"
-#define APPVERSION MAJORVERSION "." MINORVERSION "." NANOVERSION
-
 using namespace std;
 
 #define LOG_MESSAGE(...) {printf(__VA_ARGS__); printf("\n");}

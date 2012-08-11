@@ -13,7 +13,10 @@ default:
 	@$(MAKE) -f Makefile.$(MAKEFILE) 
 
 clean:
-	@$(MAKE) -f Makefile.$(MAKEFILE) clean 
+	@$(MAKE) -f Makefile.$(MAKEFILE) clean
 
 install:
-	@$(MAKE) -f Makefile.$(MAKEFILE) install 
+	@$(MAKE) -f Makefile.$(MAKEFILE) install
+
+package:
+	@$(MAKE) -f Makefile.$(MAKEFILE) package
