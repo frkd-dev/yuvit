@@ -1,44 +1,46 @@
 include Common.mk
 
-APPNAME_32 = $(APPNAME)
-APPNAME_64 = $(APPNAME)_x64
-
 SOURCES = $(wildcard *.cpp)
-OBJECTS_32 = $(SOURCES:.cpp=.o-i386)
-OBJECTS_64 = $(SOURCES:.cpp=.o-x86_64)
+OBJDIR_32 = _osx/32
+OBJDIR_64 = _osx/64
+OBJS = $(SOURCES:.cpp=.o)
+OBJS_32 = $(addprefix $(OBJDIR_32)/, $(OBJS))
+OBJS_64 = $(addprefix $(OBJDIR_64)/, $(OBJS))
 LINKLIBS = -lstdc++
 CPUS=$(shell sysctl -n hw.ncpu)
 
-CXX_32=g++
-CXX_64=g++
+CXX=g++
 ARCH_32 = -arch i386
 ARCH_64 = -arch x86_64
 CXXFLAGS = -Wall -Os -I FreeImage/Dist -DAPPVERSION=\"$(APPVERSION)\"
 CXXFLAGS_32 = $(ARCH_32) $(CXXFLAGS)
 CXXFLAGS_64 = $(ARCH_64) $(CXXFLAGS)
 
-default : $(APPNAME_32) $(APPNAME_64)
+default: dirs $(APPNAME)
 
-%.o-i386 : %.cpp
+$(OBJDIR_32)/%.o: %.cpp
 	@$(CXX) $(CXXFLAGS_32) -o $@ -c $<
 
-%.o-x86_64 : %.cpp
+$(OBJDIR_64)/%.o: %.cpp
 	@$(CXX) $(CXXFLAGS_64) -o $@ -c $<
 
-$(APPNAME_32): FreeImage $(OBJECTS_32)
-	@$(CXX_32) -o $@ $(ARCH_32) $(OBJECTS_32) FreeImage/Dist/libfreeimage.a $(LINKLIBS)
+$(APPNAME): FreeImage $(OBJS_32) $(OBJS_64)
+	@$(CXX) -o $(OBJDIR_32)/$@ $(ARCH_32) $(OBJS_32) FreeImage/Dist/libfreeimage.a $(LINKLIBS)
+	@$(CXX) -o $(OBJDIR_64)/$@ $(ARCH_64) $(OBJS_64) FreeImage/Dist/libfreeimage.a $(LINKLIBS)
 
-$(APPNAME_64): FreeImage $(OBJECTS_64)
-	@$(CXX_64) -o $@ $(ARCH_64) $(OBJECTS_64) FreeImage/Dist/libfreeimage.a $(LINKLIBS)
+dirs:
+	@mkdir -p $(OBJDIR_32)
+	@mkdir -p $(OBJDIR_64)
 
 FreeImage:
 	@make --jobs=$(CPUS) --directory=FreeImage -f Makefile.osx
 
-clean :
+clean:
 	@make --directory=FreeImage -f Makefile.osx clean
-	@rm $(OBJECTS_32) $(OBJECTS_64) $(APPNAME_32) $(APPNAME_64)
+	@rm -rf $(OBJDIR_32) $(OBJDIR_64)
 
 package: default
-	@zip $(APPNAME)_$(APPVERSION)_mac.zip $(APPNAME_32) $(APPNAME_64)
+	@zip -j $(APPNAME)_$(APPVERSION)_macosx_i386.zip $(OBJDIR_32)/$(APPNAME)
+	@zip -j $(APPNAME)_$(APPVERSION)_macosx_x86_64.zip $(OBJDIR_64)/$(APPNAME)
 
-.PHONY : clean FreeImage
+.PHONY: clean FreeImage dirs

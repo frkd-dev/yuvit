@@ -1,0 +1,8 @@
+include FreeImage/Makefile.srcs
+
+SRCDIRS = . DeprecationManager FreeImage FreeImageToolkit LibJPEG LibMNG LibOpenJPEG LibPNG LibRawLite LibRawLite/dcraw LibRawLite/internal LibRawLite/libraw LibRawLite/src LibTIFF Metadata OpenEXR OpenEXR/half OpenEXR/Iex OpenEXR/IlmImf OpenEXR/IlmThread OpenEXR/Imath zlib
+
+# Convert files and dirs to own path
+SRCDIRS := $(subst /.,,$(addprefix FreeImage/Source/,$(SRCDIRS)))
+SRCS := $(subst /./,/,$(addprefix FreeImage/,$(SRCS)))
+INCDIRS := $(addprefix -I,$(SRCDIRS))

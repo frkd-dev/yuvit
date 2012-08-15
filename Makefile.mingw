@@ -9,22 +9,22 @@ CXXFLAGS = -Wall -O3 -I FreeImage/Dist -DAPPVERSION=\"$(APPVERSION)\"
 LINKFLAGS = -static
 LINKLIBS = -lstdc++ -lwsock32 -lws2_32
 
-default : $(APPEXEC)
+default: $(APPEXEC)
 
-%.o : %.cpp
+%.o: %.cpp
 	@$(CXX) $(CXXFLAGS) -o $@ -c $<
 
-$(APPEXEC) : FreeImage $(OBJECTS)
+$(APPEXEC): FreeImage $(OBJECTS)
 	@$(CXX) -o $(APPEXEC) $(LINKFLAGS) $(OBJECTS) FreeImage/Dist/FreeImage.a $(LINKLIBS)
 
-FreeImage :
+FreeImage:
 	@$(MAKE) --jobs=$(NUMBER_OF_PROCESSORS) --directory=FreeImage -f Makefile.mingw FREEIMAGE_LIBRARY_TYPE=STATIC
 
-clean :
+clean:
 	@$(MAKE) --directory=FreeImage -f Makefile.mingw FREEIMAGE_LIBRARY_TYPE=STATIC clean
 	@$(RM) $(OBJECTS) $(APPEXEC)
 
-package : default
+package: default
 	zip $(APPNAME)_$(APPVERSION)_win.zip $(APPEXEC)
 
-.PHONY : clean FreeImage
+.PHONY: package clean FreeImage
