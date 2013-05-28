@@ -1,6 +1,6 @@
 include FreeImage/Makefile.srcs
 
-SRCDIRS = . DeprecationManager FreeImage FreeImageToolkit LibJPEG LibMNG LibOpenJPEG LibPNG LibRawLite LibRawLite/dcraw LibRawLite/internal LibRawLite/libraw LibRawLite/src LibTIFF Metadata OpenEXR OpenEXR/half OpenEXR/Iex OpenEXR/IlmImf OpenEXR/IlmThread OpenEXR/Imath zlib
+SRCDIRS = . DeprecationManager FreeImage FreeImageToolkit LibJPEG LibMNG LibOpenJPEG LibPNG LibRawLite LibRawLite/dcraw LibRawLite/internal LibRawLite/libraw LibRawLite/src LibTIFF Metadata OpenEXR OpenEXR/Half OpenEXR/Iex OpenEXR/IlmImf OpenEXR/IlmThread OpenEXR/Imath ZLib
 
 # Convert files and dirs to own path
 SRCDIRS := $(subst /.,,$(addprefix FreeImage/Source/,$(SRCDIRS)))
