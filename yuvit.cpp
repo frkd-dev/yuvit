@@ -236,9 +236,7 @@ int main(int argc, char* argv[])
 			{
 				for(uint32_t col = 0; col < lumaWidth; col += 2)
 				{	// Write in following order U, V
-					fwrite(yPtr++, 1, 1, hOutFile);
 					fwrite(uPtr++, 1, 1, hOutFile);
-					fwrite(yPtr++, 1, 1, hOutFile);
 					fwrite(vPtr++, 1, 1, hOutFile);
 				}
 			}
