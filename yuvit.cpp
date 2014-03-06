@@ -21,10 +21,12 @@ using namespace std;
 #define LOG_MESSAGE(...) {printf(__VA_ARGS__); printf("\n");}
 #define LOG_ERROR(...) {printf("ERROR: "); printf(__VA_ARGS__); printf("\n");}
 
-enum YUVFormat {
+enum YUVFormat
+{
 	YUV_YUV,
 	YUV_UYVY,
-	YUV_YUYV
+	YUV_YUYV,
+	YUV_YYUV
 };
 
 enum YUVScale
@@ -32,7 +34,7 @@ enum YUVScale
 	SCALE_H2V2,
 	SCALE_H2V1,
 	SCALE_H1V2,
-	SCALE_H1V1,
+	SCALE_H1V1
 };
 
 class Config
@@ -129,7 +131,7 @@ int main(int argc, char* argv[])
 			goto HandleError;
 		}
 
-		if( !warned && ((lumaWidth & 1) || (lumaHeight & 1)) && cfg.yuvFormat == YUV_YUV)
+		if( !warned && ((lumaWidth & 1) || (lumaHeight & 1)) && (cfg.yuvFormat == YUV_YUV || cfg.yuvFormat == YUV_YYUV))
 		{
 			LOG_MESSAGE("Warning! Dimensions of the source image are odd. This may cause incompatibility with some YUV viewers.");
 			warned = true; // Show warning only once
@@ -224,6 +226,21 @@ int main(int argc, char* argv[])
 				// Simply write U and V planes
 				fwrite(uPixels, 1, chromaWidth * chromaHeight, hOutFile);
 				fwrite(vPixels, 1, chromaWidth * chromaHeight, hOutFile);
+			}
+		}else if(cfg.yuvFormat == YUV_YYUV)
+		{	// Writing planar image with packed chroma
+			fwrite(yPixels, 1, lumaWidth * lumaHeight, hOutFile);
+
+			// U and V columns should be interleaved after each other
+			for(uint32_t row = 0; row < chromaHeight; row++)
+			{
+				for(uint32_t col = 0; col < lumaWidth; col += 2)
+				{	// Write in following order U, V
+					fwrite(yPtr++, 1, 1, hOutFile);
+					fwrite(uPtr++, 1, 1, hOutFile);
+					fwrite(yPtr++, 1, 1, hOutFile);
+					fwrite(vPtr++, 1, 1, hOutFile);
+				}
 			}
 		}else{
 			// Writing packed image
@@ -406,6 +423,8 @@ bool Config::ParseArgs(char* args[], int count)
 
 	if( yuvFormatOption == "yuv")
 		yuvFormat = YUV_YUV;
+	else if(yuvFormatOption == "yyuv")
+		yuvFormat = YUV_YYUV;
 	else if(yuvFormatOption == "yuyv")
 		yuvFormat = YUV_YUYV, uvScale = SCALE_H2V1; // Packed format always h2v1
 	else if(yuvFormatOption == "uyvy")
@@ -471,6 +490,7 @@ void PrintHelp()
 		"	yuv	: Planar format [DEFAULT]\n"
 		"	yuyv	: Packed format\n"
 		"	uyvy	: Packed format\n"
+		"	yyuv	: Planar packed chroma format\n"
 		"\nUV scales (-s option. Used only with -f and planar formats):\n"
 		"	h1v1	: UV not scaled down [DEFAULT]\n"
 		"	h2v2	: UV scaled down by 2x horizontally and vertically\n"
