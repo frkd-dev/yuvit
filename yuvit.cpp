@@ -228,17 +228,15 @@ int main(int argc, char* argv[])
 				fwrite(vPixels, 1, chromaWidth * chromaHeight, hOutFile);
 			}
 		}else if(cfg.yuvFormat == YUV_YYUV)
-		{	// Writing planar image with packed chroma
+		{	// Writing planar image
 			fwrite(yPixels, 1, lumaWidth * lumaHeight, hOutFile);
 
 			// U and V columns should be interleaved after each other
 			for(uint32_t row = 0; row < chromaHeight; row++)
 			{
-				for(uint32_t col = 0; col < lumaWidth; col += 2)
-				{	// Write in following order U, V
-					fwrite(yPtr++, 1, 1, hOutFile);
+				for(uint32_t col = 0; col < chromaWidth; col++)
+				{	// Write in following order Y, U, Y, V
 					fwrite(uPtr++, 1, 1, hOutFile);
-					fwrite(yPtr++, 1, 1, hOutFile);
 					fwrite(vPtr++, 1, 1, hOutFile);
 				}
 			}
