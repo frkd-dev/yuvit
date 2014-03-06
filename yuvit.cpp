@@ -228,14 +228,14 @@ int main(int argc, char* argv[])
 				fwrite(vPixels, 1, chromaWidth * chromaHeight, hOutFile);
 			}
 		}else if(cfg.yuvFormat == YUV_YYUV)
-		{	// Writing planar image
+		{	// Writing planar image with packed chroma
 			fwrite(yPixels, 1, lumaWidth * lumaHeight, hOutFile);
 
 			// U and V columns should be interleaved after each other
 			for(uint32_t row = 0; row < chromaHeight; row++)
 			{
 				for(uint32_t col = 0; col < lumaWidth; col += 2)
-				{	// Write in following order Y, U, Y, V
+				{	// Write in following order U, V
 					fwrite(yPtr++, 1, 1, hOutFile);
 					fwrite(uPtr++, 1, 1, hOutFile);
 					fwrite(yPtr++, 1, 1, hOutFile);
@@ -413,7 +413,7 @@ bool Config::ParseArgs(char* args[], int count)
 		uvScale = SCALE_H1V1;
 	else if(uvScaleOption == "h1v2")
 		uvScale = SCALE_H1V2;
-	else if(uvScaleOption == "h2v1")s
+	else if(uvScaleOption == "h2v1")
 		uvScale = SCALE_H2V1;
 	else if( !uvScaleOption.empty())
 	{
