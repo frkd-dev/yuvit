@@ -234,9 +234,9 @@ int main(int argc, char* argv[])
 			// U and V columns should be interleaved after each other
 			for(uint32_t row = 0; row < chromaHeight; row++)
 			{
-				for(uint32_t col = 0; col < chromaWidth; col += 1)
+				for(uint32_t col = 0; col < chromaWidth; col++)
 				{	// Write in following order Y, U, Y, V
-					fwrite(yPtr++, 1, 1, hOutFile);
+					fwrite(uPtr++, 1, 1, hOutFile);
 					fwrite(vPtr++, 1, 1, hOutFile);
 				}
 			}
