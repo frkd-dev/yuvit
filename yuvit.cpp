@@ -232,16 +232,16 @@ int main(int argc, char* argv[])
 			fwrite(yPixels, 1, lumaWidth * lumaHeight, hOutFile);
 
 			// U and V columns should be interleaved after each other
-      for(uint32_t row = 0; row < chromaHeight; row++)
-      {
-        for(uint32_t col = 0; col < lumaWidth; col += 2)
-        {	// Write in following order Y, U, Y, V
-          fwrite(yPtr++, 1, 1, hOutFile);
-          fwrite(uPtr++, 1, 1, hOutFile);
-          fwrite(yPtr++, 1, 1, hOutFile);
-          fwrite(vPtr++, 1, 1, hOutFile);
-        }
-      }
+			for(uint32_t row = 0; row < chromaHeight; row++)
+			{
+				for(uint32_t col = 0; col < lumaWidth; col += 2)
+				{	// Write in following order Y, U, Y, V
+					fwrite(yPtr++, 1, 1, hOutFile);
+					fwrite(uPtr++, 1, 1, hOutFile);
+					fwrite(yPtr++, 1, 1, hOutFile);
+					fwrite(vPtr++, 1, 1, hOutFile);
+				}
+			}
 		}else{
 			// Writing packed image
 			if(cfg.yuvFormat == YUV_YUYV)
@@ -413,7 +413,7 @@ bool Config::ParseArgs(char* args[], int count)
 		uvScale = SCALE_H1V1;
 	else if(uvScaleOption == "h1v2")
 		uvScale = SCALE_H1V2;
-	else if(uvScaleOption == "h2v1")
+	else if(uvScaleOption == "h2v1")s
 		uvScale = SCALE_H2V1;
 	else if( !uvScaleOption.empty())
 	{
