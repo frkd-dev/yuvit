@@ -25,6 +25,7 @@ Usage
                 yuv  : Planar format [DEFAULT]
                 yuyv : Packed format
                 uyvy : Packed format
+                yyuv : Planar packed chroma format
 
         UV scales (-s option. Used only with -f and planar formats):
                 h1v1 : UV not scaled down [DEFAULT]
@@ -99,6 +100,12 @@ Here are examples of how 4x4 pixels image can be stored in YUV format depending 
         YYYY
         VVUU
         VVUU
+
+9) -f yuv -s h1v1
+
+        YYYY
+        YYYY
+        UVUV
 
 Author
 ======
