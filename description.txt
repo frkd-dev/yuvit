@@ -1,0 +1,1 @@
+Console tool for converting single or sequenced YUV images from/to PNG, TIFF, JPEG, BMP, RAW and many others supported by FreeImage library. Tool supports wide range of YUV formats including some rare ones.

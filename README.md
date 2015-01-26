@@ -1,15 +1,35 @@
 YUVIT
 =====
 
-YUVIT is open source command line tool that can convert images into YUV sequences or streams. This tool has two major benefits: wide formats support for output yuv images and wide formats support for input images. 
+YUVIT is open source command line tool for convertinng jpeg, bmp, png, tiff images into YUV images or sequences and vise versa. Tool has wide support of YUV formats. Wide support of common input/output formats (png, jpeg, tiff, etc) privided by [FreeImage][1] library. 
 
-This tool was started in far 2005 and was released as any2yuv on Sourceforge in 2006. It was based on Corona open source imaging library which development has been stopped in far-far 2003. I didn't maintained any2yuv since it was released, therefore it missed functionality and some bugs. But in 2011 I got several requests and bug reports about this tool. After that was decided to rewrite this tool from scratch.
+[1]: http://freeimage.sf.net
 
-Meet the YUVIT for Mac, Windows and Linux. It's simply better then its predecessor. Now YUVIT uses FreeImage library, which provides support for tens image codecs like jpeg, tiff, png, pcx, bmp, gif and so on. 
+Build
+-----
 
+First, install build tools.
+
+Debian based distros (Ubuntu, Mint):
+
+    sudo apt-get install g++ cmake libfreeimage-dev
+
+RadHat based distros (Fedora, CentOS):
+
+    sudo yum install gcc-c++ cmake freeimage-devel
+
+Get sources and build:
+
+    git clone https://github.com/stunpix/yuvit.git
+    mkdir yuvit/build && cd yuvit/build
+    cmake ..
+    make
+    cpack
+
+You'll get .deb and .rpm packages in current directory.
 
 Usage
-=====
+-----
 
         yuvit [options] [-f format] [-s uvscale] <InFile> [OutFile]
 
@@ -43,7 +63,7 @@ Usage
                     Convert images 'test000010.jpg'...'test000200.jpg' into files 'out010.yuv'...'out200.yuv'
 
 YUV Formats
-===========
+-----------
 
 Here are examples of how 4x4 pixels image can be stored in YUV format depending on options (not all possible cases are shown).
  
@@ -107,12 +127,18 @@ Here are examples of how 4x4 pixels image can be stored in YUV format depending 
         YYYY
         UVUV
 
-Author
-======
+History
+-------
 
-(c) 2005-2012 Alexander Shashkevych <alexander()stunpix.com>
+Initially tool has been released in 2006 on Sourceforge and named as `any2yuv`. In 2011 after several requests and bug reports, it was rewritten from the ground, renamed to `yuvit` and moved to github.
+
+
+Author
+------
+
+2005-2015 Alexander Shashkevych <stunpix_gmail.com>
 
 License
-=======
+-------
 
-YUVIT code is licensed under LGPL. Code of FreeImage and image codecs are distributed under their own licenses.
+Source code licensed under LGPLv3.

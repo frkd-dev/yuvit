@@ -1,2 +1,0 @@
-APPNAME = yuvit
-APPVERSION = 0.1.1
