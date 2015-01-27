@@ -10,12 +10,24 @@ if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Release")
 endif()
 
-find_path(FreeImageInclude NAMES FreeImage.h)
+find_path(FreeImageIncludeDir NAMES FreeImage.h)
+find_library(FreeImageLib freeimage)
 
-if(FreeImageInclude MATCHES "NOTFOUND")
-	message(FATAL_ERROR "Missing FreeImage. Perhaps not installed? Try install 'libfreeimage-dev'.")
+if(FreeImageIncludeDir MATCHES "NOTFOUND" OR FreeImageLib MATCHES "NOTFOUND")
+	message(FATAL_ERROR "NOT FOUND: FreeImage.
+	Not installed? Try install:
+	Debian: sudo apt-get install libfreeimage-dev
+	RedHat: sudo yum install freeimage-devel
+	OS X: brew install freeimage")
 else()
-	message(STATUS "FOUND: FreeImage")
+	if(CMAKE_HOST_APPLE)
+		# On OS X freeimage installed under /usr/local and
+		# clang doesn't see it, so we must set paths explicitly
+		get_filename_component(FreeImageLibDir ${FreeImageLib} DIRECTORY)
+		include_directories(${FreeImageIncludeDir})
+		link_directories(${FreeImageLibDir})
+	endif()
+	message(STATUS "FreeImage: FOUND")
 endif()
 
 include_directories(${PROJECT_BINARY_DIR})

@@ -8,25 +8,39 @@ YUVIT is open source command line tool for convertinng jpeg, bmp, png, tiff imag
 Build
 -----
 
-First, install build tools.
+First, you'll need build tools.
 
-Debian based distros (Ubuntu, Mint):
+For Debian, Ubuntu, Mint:
 
     sudo apt-get install g++ cmake libfreeimage-dev
 
-RadHat based distros (Fedora, CentOS):
+For RadHat, Fedora, CentOS:
 
     sudo yum install gcc-c++ cmake freeimage-devel
 
-Get sources and build:
+For OS X you'll need a [Brew][1] and [Apple Command-line Tools][2]. Install them, then continue:
+
+[1]: http://brew.sh/
+[2]: https://developer.apple.com/downloads/
+
+    brew install cmake freeimage
+
+Now get sources and build:
 
     git clone https://github.com/stunpix/yuvit.git
     mkdir yuvit/build && cd yuvit/build
     cmake ..
     make
+
+For OS X there is only way to install tool using:
+
+    make install
+
+This installs tool under /usr/local. You can also use this approach for Linux distros, but we recommend to use your system's package manager for installs. To get .deb and .rpm packages, run:
+
     cpack
 
-You'll get .deb and .rpm packages in current directory.
+and install package using your package manager. With this approach your system will be not polluted with files that aren't controlled by package manager.
 
 Usage
 -----

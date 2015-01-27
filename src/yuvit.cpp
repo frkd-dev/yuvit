@@ -5,15 +5,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
-#if defined(__MINGW__)
-#undef _WIN32
-#undef __WIN32__
-#endif
-
-#define FREEIMAGE_LIB
-
-#include "FreeImage.h"
+#include <FreeImage.h>
 
 #include "getopt_pp.h"
 
