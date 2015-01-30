@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <iostream>
 #include <sstream>
-#include <string>
 #include <vector>
 #include <FreeImage.h>
 
@@ -38,8 +37,8 @@ public:
 	bool uvOrderSwap;				/**/
 	uint32_t yuvFormat;			/* YUV output mode. Default: h2v2 */
 	uint32_t uvScale;			/* Defines how UV components are scaled in planar mode */
-	uint32_t seqStart;			/* Sequence start for multiple files */
-	uint32_t seqEnd;			/* Sequence end for multiple files */
+	unsigned long seqStart;			/* Sequence start for multiple files */
+	unsigned long seqEnd;			/* Sequence end for multiple files */
 	string inFileNamePattern;
 	string outFileNamePattern;
 
@@ -53,13 +52,13 @@ private:
 };
 
 void PrintHelp();
-string ExpandPattern(string pattern, int counter);
+string ExpandPattern(string pattern, unsigned long counter);
 
 int main(int argc, char* argv[])
 {
 	Config cfg;
 	string inFileName, outFileName;
-	FILE* hOutFile;
+	FILE* hOutFile = 0;
 	uint8_t errorFlag = 1; // By default we will exiting with error
 	FIBITMAP *inImage = 0;
 	uint32_t lumaWidth, lumaHeight;
@@ -182,11 +181,11 @@ int main(int argc, char* argv[])
 				Gc = *rgbPixels++;
 				Bc = *rgbPixels++;
 
-				*yPtr++ = (0.257f * Rc) + (0.504f * Gc) + (0.098f * Bc) + 16;
+				*yPtr++ = uint8_t((0.257f * Rc) + (0.504f * Gc) + (0.098f * Bc) + 16);
 				if((y & yMask) == 0 && (x & xMask) == 0 && (y / 2) < chromaHeight && (x / 2) < chromaWidth)
 				{
-					*uPtr++ = -(0.148f * Rc) - (0.291f * Gc) + (0.439f * Bc) + 128;
-					*vPtr++ = (0.439f * Rc) - (0.368f * Gc) - (0.071f * Bc) + 128;
+					*uPtr++ = uint8_t(-(0.148f * Rc) - (0.291f * Gc) + (0.439f * Bc) + 128);
+					*vPtr++ = uint8_t((0.439f * Rc) - (0.368f * Gc) - (0.071f * Bc) + 128);
 				}
 			}
 		}
@@ -281,23 +280,17 @@ int main(int argc, char* argv[])
 
 HandleError:
 	if(inImage)
-	{
 		FreeImage_Unload(inImage);
-		inImage = 0;
-	}
 
 	if(hOutFile)
-	{
 		fclose(hOutFile);
-		hOutFile = 0;
-	}
 
 	FreeImage_DeInitialise();
 
 	return errorFlag;
 }
 
-string toString(int value)
+string toString(unsigned long value)
 {
 	ostringstream oss;
 	oss << value;
@@ -305,11 +298,11 @@ string toString(int value)
 }
 
 /*
- Description: Function searches for '#' symbols and replaces them by integer value with leading zeros
+ Description: Scan for '#' symbols and replaces them with integer value (and leading zeros if needed)
  Returns: Formed string
 */
 
-string ExpandPattern(string pattern, int counter)
+string ExpandPattern(string pattern, unsigned long counter)
 {
 	string result;
 	string::iterator it = pattern.begin();
@@ -375,7 +368,7 @@ bool Config::ParseArgs(char* args[], int count)
 	string uvScaleOption;
 	bool error = true;
 
-	GetOpt_pp opt(count, args);
+	GetOpt_pp opt(count, (const char * const *) args);
 
 	opt >> OptionPresent('a', appendMode);
 	opt >> OptionPresent('i', uvInterleave);
@@ -445,6 +438,7 @@ bool Config::ParseSequenceRange(string range)
 	string::iterator it = range.begin();
 	string seqStartOpt;
 	string seqEndOpt;
+	char *end = 0;
 
 	// Copy from input to seqStartOpt until we will find ':' character
 	while(it != range.end() && *it != ':')
@@ -460,8 +454,8 @@ bool Config::ParseSequenceRange(string range)
 	if(seqStartOpt.empty() || seqEndOpt.empty())
 		return false;
 
-	seqStart = atoi(seqStartOpt.c_str());
-	seqEnd = atoi(seqEndOpt.c_str());
+	seqStart = strtoul(seqStartOpt.c_str(), &end, 10);
+	seqEnd = strtoul(seqEndOpt.c_str(), &end, 10);
 
 	return true;
 }
