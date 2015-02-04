@@ -1,6 +1,7 @@
-cmake_minimum_required(VERSION 3.0)
-project(yuvit VERSION 0.1.1)
+cmake_minimum_required(VERSION 2.8.0)
+project(yuvit)
 
+set(PROJECT_VERSION 0.1.1)
 set(PROJECT_URL "https://github.com/stunpix/yuvit")
 set(PROJECT_AUTHOR "Alexander Shashkevich <stunpix@gmail.com>")
 set(PROJECT_LICENSE "LGPLv3")
