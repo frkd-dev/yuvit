@@ -1,4 +1,4 @@
-YUVIT
+YUVIT [![Build Status](https://travis-ci.org/stunpix/yuvit.svg)](https://travis-ci.org/stunpix/yuvit)
 =====
 
 YUVIT is open source command line tool for convertinng jpeg, bmp, png, tiff images into YUV images or sequences and vice versa. Tool has wide support of YUV formats. Wide support of common input/output formats (png, jpeg, tiff, etc) provided by [FreeImage][1] library. 
