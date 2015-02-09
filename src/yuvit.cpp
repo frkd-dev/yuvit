@@ -5,8 +5,7 @@
 #include <sstream>
 #include <vector>
 #include <FreeImage.h>
-
-#include "getopt_pp.h"
+#include <unistd.h>
 
 using namespace std;
 
@@ -351,44 +350,67 @@ string ExpandPattern(string pattern, unsigned long counter)
 Config::Config()
 {
 	appendMode = false;	/* if not zero append YUV image(s) to output file */
+	uvOrderSwap = false;
+	uvInterleave = false;
 	yuvFormat = YUV_YUV;	/* YUV output mode. Default: h2v2 */
 	uvScale = SCALE_H1V1;	/* UV scaling for planar mode. Default: h1v1 */
 	seqStart = 0;	/* Sequence start for multiple files */
 	seqEnd = 0;		/* Sequence end for multiple files */
 }
 
-
 bool Config::ParseArgs(char* args[], int count)
 {
-	using namespace GetOpt;
-
-	vector<string> files;
 	string seqRangeOption;
 	string yuvFormatOption;
 	string uvScaleOption;
 	bool error = true;
 
-	GetOpt_pp opt(count, (const char * const *) args);
+	while(true) {
+		int c = getopt(count, args, "haiwm:f:s:o:");
 
-	opt >> OptionPresent('a', appendMode);
-	opt >> OptionPresent('i', uvInterleave);
-	opt >> OptionPresent('w', uvOrderSwap);
-	opt >> Option('m', seqRangeOption);
-	opt >> Option('f', yuvFormatOption);
-	opt >> Option('s', uvScaleOption);
-	opt >> GlobalOption(files);
+		if (c == -1)
+			break;
 
-	if(files.size() > 0)
+		switch (c) {
+			case 'h':
+				goto HandleError;
+			case 'a':
+				appendMode = true;
+				break;
+			case 'i':
+				uvInterleave = true;
+				break;
+			case 'w':
+				uvOrderSwap = true;
+				break;
+			case 'm':
+				seqRangeOption = optarg;
+				break;
+			case 'f':
+				yuvFormatOption = optarg;
+				break;
+			case 's':
+				uvScaleOption = optarg;
+				break;
+			case 'o':
+				outFileNamePattern = optarg;
+				break;
+			default:
+				cerr << "Unknown option: '" << (char)optopt << "'" << endl;
+				break;
+		};
+	}
+
+	if (optind != count)
 	{
-		inFileNamePattern = files[0];
-		outFileNamePattern = files[0] + ".yuv"; // If output didn't been specified, we will use original name + .yuv
+		inFileNamePattern = args[optind];
 	} else {
-		LOG_ERROR("You've not specified files to process...");
+		cerr << "Input file not specified" << endl;
 		goto HandleError;
 	}
 
-	if(files.size() > 1)
-		outFileNamePattern = files[1]; // Output file was specified, use its name
+	if (outFileNamePattern.length() == 0)
+		outFileNamePattern = inFileNamePattern + ".yuv";
 
 	// Scaling could be overridden by format, then select scale first
 	if( uvScaleOption == "h2v2")
@@ -462,35 +484,49 @@ bool Config::ParseSequenceRange(string range)
 
 void PrintHelp()
 {
-	printf(
-		"\nUsage: yuvit [options] [-f format] [-s uvscale] <InFile> [OutFile]\n\n"
-		"Options:\n"
-		"	-a : Add new image to the end of output file. Don't truncate output file.\n"
-		"	-m <start>:<end> : Multiple file input. Where:\n"
-		"		start : Sequence start\n"
-		"		end  : Sequence end\n"
-		"	-i : Interleave UV rows for planar formats\n"
-		"	-w : Swap UV components order\n"
-		"\nFormats (-f option):\n"
-		"	yuv	: Planar format [DEFAULT]\n"
-		"	yuyv	: Packed format\n"
-		"	uyvy	: Packed format\n"
-		"	yyuv	: Planar packed chroma format\n"
-		"\nUV scales (-s option. Used only with -f and planar formats):\n"
-		"	h1v1	: UV not scaled down [DEFAULT]\n"
-		"	h2v2	: UV scaled down by 2x horizontally and vertically\n"
-		"	h2v1	: UV scaled down by 2x horizontally\n"
-		"	h1v2	: UV scaled down by 2x vertically\n"
-		"\nNote: Use symbol '#' in file names for enumerators.\n"
-		"\nExamples:\n"
-		"yuvit -a -m 0:100 test###.bmp out.yuv\n"
-		"		Convert images from 'test000.bmp' to 'test100.bmp' into single 'out.yuv' file\n"
-		"\nyuvit -m 10:200 test######.jpg out###.yuv\n"
-		"		Convert images 'test000010.jpg'...'test000200.jpg' into files 'out010.yuv'...'out200.yuv'\n"
-		"\n"
-		"YUV converter v" PROJECT_VERSION "\n"
-		"by " PROJECT_AUTHOR "\n"
-		"License: " PROJECT_LICENSE "\n"
-		"URL: " PROJECT_URL "\n"
-		);
+	cout <<
+	"\nUsage: yuvit [options] [-f format] [-s uvscale] <file>\n\n"
+	"Options:\n"
+	"    -h\n"
+	"        This help\n"
+	"    -o\n"
+	"        Output filename. Could be a pattern for read multifile sequences.\n"
+	"    -a\n"
+	"       Append mode. Images will be append to output file. Doesn't truncate output file.\n"
+	"    -m <start>:<end>\n"
+	"       Start and end numbers for multifile sequences.\n"
+	"    -i\n"
+	"       Interleave UV rows for planar formats\n"
+	"    -w\n"
+	"       Swap UV components order\n"
+	"\nFormats (-f option):\n"
+	"    yuv\n"
+	"        Planar format [DEFAULT]\n"
+	"    yuyv\n"
+	"        Packed format\n"
+	"    uyvy\n"
+	"        Packed format\n"
+	"    yyuv\n"
+	"        Planar packed chroma format\n"
+	"\nChroma scaling (-s option. Used only with -f and planar formats):\n"
+	"    h1v1\n"
+	"        UV not scaled down [DEFAULT]\n"
+	"    h2v2\n"
+	"        UV scaled down by 2x horizontally and vertically\n"
+	"    h2v1\n"
+	"        UV scaled down by 2x horizontally\n"
+	"    h1v2\n"
+	"        UV scaled down by 2x vertically\n"
+	"\nMultifile sequences:\n"
+	"    Use '#' in file names, so they will be replaced with numbers.\n"
+	"    Examples:\n"
+	"        yuvit -a -m 0:100 -o out.yuv test###.bmp\n"
+	"            Converts: 'test000.bmp'...'test100.bmp' -> 'out.yuv'\n"
+	"        yuvit -m 10:200 -o out###.yuv test######.jpg\n"
+	"            Converts: 'test000010.jpg'...'test000200.jpg' -> 'out010.yuv'...'out200.yuv'\n"
+	"\nYUV converter v" PROJECT_VERSION "\n"
+	"by " PROJECT_AUTHOR "\n"
+	"License: " PROJECT_LICENSE "\n"
+	"URL: " PROJECT_URL "\n"
+	;
 }

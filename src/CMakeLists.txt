@@ -1,4 +1,4 @@
-set(SOURCES yuvit.cpp getopt_pp.cpp)
+set(SOURCES yuvit.cpp)
 
 add_executable(yuvit ${SOURCES})
 target_link_libraries(yuvit freeimage)
