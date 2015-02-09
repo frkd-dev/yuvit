@@ -267,9 +267,9 @@ int main(int argc, char* argv[])
 		fclose(hOutFile);
 		hOutFile = 0;
 
-		delete yPixels;
-		delete uPixels;
-		delete vPixels;
+		delete[] yPixels;
+		delete[] uPixels;
+		delete[] vPixels;
 
 		cfg.seqStart++;
 	}
