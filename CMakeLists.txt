@@ -6,10 +6,13 @@ set(PROJECT_URL "https://github.com/stunpix/yuvit")
 set(PROJECT_AUTHOR "Alexander Shashkevich <stunpix@gmail.com>")
 set(PROJECT_LICENSE "LGPLv3")
 
-
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE "Release")
 endif()
+
+# set strict code checking
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c11 -Werror -Wpedantic -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Werror -Wpedantic -Wall -Wextra")
 
 find_path(FreeImageIncludeDir NAMES FreeImage.h)
 find_library(FreeImageLib freeimage)
