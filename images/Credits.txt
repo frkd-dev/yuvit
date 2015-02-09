@@ -1,0 +1,9 @@
+640x480.jpg
+    Author: Dan Lundberg
+    License: CC-BY-SA 2.0
+    URL: https://www.flickr.com/photos/9508280@N07/13540627983/
+
+640x425.jpg
+    Author: Dan Lundberg
+    License: CC-BY-SA 2.0
+    URL: https://www.flickr.com/photos/9508280@N07/13540621323/
