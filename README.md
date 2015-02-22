@@ -45,36 +45,66 @@ and install package using your package manager. With this approach your system w
 Usage
 -----
 
-        yuvit [options] [-f format] [-s uvscale] <InFile> [OutFile]
+    Usage: yuvit [options] <file>
 
-        Options:
-                -a : Add new image to the end of output file. Don't truncate output file.
-                -m <start>:<end> : Multiple file input. Where:
-                    start : Sequence start
-                    end  : Sequence end
-                -i : Interleave UV rows for planar formats
-                -w : Swap UV components order
+    Options:
+        -h
+            This help
+        -o
+            Output filename. Could be a pattern for read multifile sequences.
+        -a
+           Append mode. Images will be append to output file. Doesn't truncate output file.
+        -m <start>:<end>
+           Start and end numbers for multifile sequences.
+        -i
+           Interleave UV rows for planar formats
+        -w
+           Swap UV components order
+        -x <jpeg|sdtv|hdtv>
+           Use YUV conversion matrix. Default: jpeg
+                jpeg
+                    JFIF specification matrix:
+                    |Y|   | 0.299     0.587     0.114|   |R|
+                    |U| = |-0.168736 -0.331264  0.5  | x |G|
+                    |V|   | 0.5      -0.418688 -0.081|   |B|
+                sdtv
+                    ITU-R BT.601 for SDTV specification matrix:
+                    |Y|   | 0.299    0.587    0.114  |   |R|
+                    |U| = |-0.14713 -0.28886  0.436  | x |G|
+                    |V|   | 0.615   -0.51499 -0.10001|   |B|
+                hdtv
+                    ITU-R BT.709 for HDTV specification matrix:
+                    |Y|   | 0.2126   0.7152   0.0722 |   |R|
+                    |U| = |-0.09991 -0.33609  0.436  | x |G|
+                    |V|   | 0.615   -0.55861 -0.05639|   |B|
 
-        Formats (-f option):
-                yuv  : Planar format [DEFAULT]
-                yuyv : Packed format
-                uyvy : Packed format
-                yyuv : Planar packed chroma format
-
-        UV scales (-s option. Used only with -f and planar formats):
-                h1v1 : UV not scaled down [DEFAULT]
-                h2v2 : UV scaled down by 2x horizontally and vertically
-                h2v1 : UV scaled down by 2x horizontally
-                h1v2 : UV scaled down by 2x vertically
-
-        Note: Use symbol '#' in file names for enumerators.
-
+        -f <yuv|yuyv|uyuv|yyuv>
+            Output YUV format. Default: yuv"
+                yuv
+                    Planar format
+                yuyv
+                    Packed format
+                uyvy
+                    Packed format
+                yyuv
+                    Planar packed chroma format
+        -s <h1v1|h2v2|h2v1|h1v2>
+            Chroma scaling. Used only for planar formats. Default: h1v1
+                h1v1
+                    UV not scaled down [DEFAULT]
+                h2v2
+                    UV scaled down by 2x horizontally and vertically
+                h2v1
+                    UV scaled down by 2x horizontally
+                h1v2
+                    UV scaled down by 2x vertically
+    Multifile sequences:
+        Use '#' in file names, so they will be replaced with numbers.
         Examples:
-            yuvit -a -m 0:100 test###.bmp out.yuv
-                    Convert images from 'test000.bmp' to 'test100.bmp' into single 'out.yuv' file
-
-            yuvit -m 10:200 test######.jpg out###.yuv
-                    Convert images 'test000010.jpg'...'test000200.jpg' into files 'out010.yuv'...'out200.yuv'
+            yuvit -a -m 0:100 -o out.yuv test###.bmp
+                Converts: 'test000.bmp'...'test100.bmp' -> 'out.yuv'
+            yuvit -m 10:200 -o out###.yuv test######.jpg
+                Converts: 'test000010.jpg'...'test000200.jpg' -> 'out010.yuv'...'out200.yuv'
 
 YUV Formats
 -----------
