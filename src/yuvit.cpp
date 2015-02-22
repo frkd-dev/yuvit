@@ -60,6 +60,7 @@ int main(int argc, char* argv[])
 	FILE* hOutFile = 0;
 	uint8_t errorFlag = 1; // By default we will exiting with error
 	FIBITMAP *inImage = 0;
+	uint32_t bpp = 0;
 	uint32_t lumaWidth, lumaHeight;
 	uint32_t chromaWidth, chromaHeight;
 	uint32_t x, y, xMask, yMask;
@@ -111,10 +112,11 @@ int main(int argc, char* argv[])
 			goto HandleError;
 		}
 
+		bpp = FreeImage_GetBPP(inImage);
 		lumaWidth = FreeImage_GetWidth(inImage);
 		lumaHeight = FreeImage_GetHeight(inImage);
 
-		LOG_MESSAGE("\t%s [%dx%d]", inFileName.c_str(), lumaWidth, lumaHeight);
+		LOG_MESSAGE("\t%s [%dx%d %ubpp]", inFileName.c_str(), lumaWidth, lumaHeight, bpp);
 
 		if( (lumaWidth & 1) && cfg.yuvFormat != YUV_YUV)
 		{
@@ -126,6 +128,20 @@ int main(int argc, char* argv[])
 		{
 			LOG_MESSAGE("Warning! Dimensions of the source image are odd. This may cause incompatibility with some YUV viewers.");
 			warned = true; // Show warning only once
+		}
+
+		if (bpp != 24)
+		{
+			FIBITMAP *newBitmap = FreeImage_ConvertTo24Bits(inImage);
+
+			if (newBitmap == NULL)
+			{
+				LOG_ERROR("Failed to convert image to 24bpp");
+				goto HandleError;
+			}
+
+			FreeImage_Unload(inImage);
+			inImage = newBitmap;
 		}
 
 		FreeImage_FlipVertical(inImage);
