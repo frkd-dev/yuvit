@@ -40,11 +40,15 @@ public:
 	unsigned long seqEnd;			/* Sequence end for multiple files */
 	string inFileNamePattern;
 	string outFileNamePattern;
+	vector<float>yuvMatrix;
 
 	Config();
 
 	// Returns "false" on errors and "true" if no errors
 	bool ParseArgs(char* args[], int count);
+	void LoadJPEGMatrix();
+	void LoadSDTVMatrix();
+	void LoadHDTVMatrix();
 
 private:
 	bool ParseSequenceRange(string range);
@@ -80,6 +84,12 @@ int main(int argc, char* argv[])
 	/* First expanding of output filename. If append mode - this is only one place
 	   where name is expanded */
 	outFileName = ExpandPattern(cfg.outFileNamePattern, cfg.seqStart);
+
+	// For performance reasons get matrix values here to put them on stack
+	// instead of accessing them in deep loops from vector
+	float yr = cfg.yuvMatrix[0], yg = cfg.yuvMatrix[1], yb = cfg.yuvMatrix[2];
+	float ur = cfg.yuvMatrix[3], ug = cfg.yuvMatrix[4], ub = cfg.yuvMatrix[5];
+	float vr = cfg.yuvMatrix[6], vg = cfg.yuvMatrix[7], vb = cfg.yuvMatrix[8];
 
 	/* Main loop of passing through all images */
 	while(cfg.seqStart <= cfg.seqEnd)
@@ -196,17 +206,18 @@ int main(int argc, char* argv[])
 				Gc = *rgbPixels++;
 				Bc = *rgbPixels++;
 
-				*yPtr++ = uint8_t((0.257f * Rc) + (0.504f * Gc) + (0.098f * Bc) + 16);
+				*yPtr++ = uint8_t(Rc * yr + Gc * yg + Bc * yb);
 				if((y & yMask) == 0 && (x & xMask) == 0 && (y / 2) < chromaHeight && (x / 2) < chromaWidth)
 				{
-					*uPtr++ = uint8_t(-(0.148f * Rc) - (0.291f * Gc) + (0.439f * Bc) + 128);
-					*vPtr++ = uint8_t((0.439f * Rc) - (0.368f * Gc) - (0.071f * Bc) + 128);
+					*uPtr++ = uint8_t(Rc * ur + Gc * ug + Bc * ub + 128);
+					*vPtr++ = uint8_t(Rc * vr + Gc * vg + Bc * vb + 128);
 				}
 			}
 		}
 
 		if(cfg.uvOrderSwap)
 		{	// UV components should be swapped, so just swap pointers
+			cout << "Swapping UV order" << endl;
 			uint8_t* tmp = uPixels;
 			uPixels = vPixels;
 			vPixels = tmp;
@@ -274,7 +285,6 @@ int main(int argc, char* argv[])
 				}
 			}
 		}
-
 
 		FreeImage_Unload(inImage);
 		inImage = 0;
@@ -366,12 +376,34 @@ string ExpandPattern(string pattern, unsigned long counter)
 Config::Config()
 {
 	appendMode = false;	/* if not zero append YUV image(s) to output file */
-	uvOrderSwap = false;
-	uvInterleave = false;
+	uvOrderSwap = false; /* no UV order swap */
+	uvInterleave = false; /* no UV interleaving */
 	yuvFormat = YUV_YUV;	/* YUV output mode. Default: h2v2 */
 	uvScale = SCALE_H1V1;	/* UV scaling for planar mode. Default: h1v1 */
 	seqStart = 0;	/* Sequence start for multiple files */
 	seqEnd = 0;		/* Sequence end for multiple files */
+	LoadJPEGMatrix();
+}
+
+void Config::LoadJPEGMatrix()
+{
+	yuvMatrix = { 0.299,     0.587,     0.114,
+				 -0.168736, -0.331264,  0.5,
+				  0.5,      -0.418688, -0.081312};
+}
+
+void Config::LoadSDTVMatrix()
+{
+	yuvMatrix = { 0.299,    0.587,    0.114,
+				 -0.14713, -0.28886,  0.436,
+				  0.615,   -0.51499, -0.10001};
+}
+
+void Config::LoadHDTVMatrix()
+{
+	yuvMatrix = { 0.2126,   0.7152,   0.0722,
+				 -0.09991, -0.33609,  0.436,
+				  0.615,   -0.55861, -0.05639};
 }
 
 bool Config::ParseArgs(char* args[], int count)
@@ -379,10 +411,11 @@ bool Config::ParseArgs(char* args[], int count)
 	string seqRangeOption;
 	string yuvFormatOption;
 	string uvScaleOption;
+	string matrixOption;
 	bool error = true;
 
 	while(true) {
-		int c = getopt(count, args, "haiwm:f:s:o:");
+		int c = getopt(count, args, "haiwm:f:s:o:x:");
 
 		if (c == -1)
 			break;
@@ -410,6 +443,9 @@ bool Config::ParseArgs(char* args[], int count)
 				break;
 			case 'o':
 				outFileNamePattern = optarg;
+				break;
+			case 'x':
+				matrixOption = optarg;
 				break;
 			default:
 				cerr << "Unknown option: '" << (char)optopt << "'" << endl;
@@ -463,10 +499,23 @@ bool Config::ParseArgs(char* args[], int count)
 			LOG_ERROR("You've specified bad sequence range...");
 			goto HandleError;
 		}
+
+	if (!matrixOption.empty())
+	{
+		if (matrixOption == "jpeg")
+			LoadJPEGMatrix();
+		else if (matrixOption == "sdtv")
+			LoadSDTVMatrix();
+		else if (matrixOption == "hdtv")
+			LoadHDTVMatrix();
+		else {
+			LOG_ERROR("Unknown matrix option '%s'", matrixOption.c_str());
+			goto HandleError;
+		}
+	}
+
 	error = false;
 HandleError:
-	if(error)
-		PrintHelp();
 
 	return !error;
 }
@@ -501,7 +550,7 @@ bool Config::ParseSequenceRange(string range)
 void PrintHelp()
 {
 	cout <<
-	"\nUsage: yuvit [options] [-f format] [-s uvscale] <file>\n\n"
+	"\nUsage: yuvit [options] <file>\n\n"
 	"Options:\n"
 	"    -h\n"
 	"        This help\n"
@@ -515,24 +564,44 @@ void PrintHelp()
 	"       Interleave UV rows for planar formats\n"
 	"    -w\n"
 	"       Swap UV components order\n"
-	"\nFormats (-f option):\n"
-	"    yuv\n"
-	"        Planar format [DEFAULT]\n"
-	"    yuyv\n"
-	"        Packed format\n"
-	"    uyvy\n"
-	"        Packed format\n"
-	"    yyuv\n"
-	"        Planar packed chroma format\n"
-	"\nChroma scaling (-s option. Used only with -f and planar formats):\n"
-	"    h1v1\n"
-	"        UV not scaled down [DEFAULT]\n"
-	"    h2v2\n"
-	"        UV scaled down by 2x horizontally and vertically\n"
-	"    h2v1\n"
-	"        UV scaled down by 2x horizontally\n"
-	"    h1v2\n"
-	"        UV scaled down by 2x vertically\n"
+	"    -x <jpeg|sdtv|hdtv>\n"
+	"       Use YUV conversion matrix. Default: jpeg\n"
+	"            jpeg\n"
+	"                Matrix specified by JFIF Specification:\n"
+	"                |Y|   | 0.299     0.587     0.114|   |R|\n"
+	"                |U| = |-0.168736 -0.331264  0.5  | x |G|\n"
+	"                |V|   | 0.5      -0.418688 -0.081|   |B|\n"
+	"            sdtv\n"
+	"                Matrix specified by ITU-R BT.601 for SDTV:\n"
+	"                |Y|   | 0.299    0.587    0.114  |   |R|\n"
+	"                |U| = |-0.14713 -0.28886  0.436  | x |G|\n"
+	"                |V|   | 0.615   -0.51499 -0.10001|   |B|\n"
+	"            hdtv\n"
+	"                Matrix specified by ITU-R BT.709 for HDTV:\n"
+	"                |Y|   | 0.2126   0.7152   0.0722 |   |R|\n"
+	"                |U| = |-0.09991 -0.33609  0.436  | x |G|\n"
+	"                |V|   | 0.615   -0.55861 -0.05639|   |B|\n"
+
+	"    -f <yuv|yuyv|uyuv|yyuv>\n"
+	"        Output YUV format. Default: yuv"
+	"            yuv\n"
+	"                Planar format\n"
+	"            yuyv\n"
+	"                Packed format\n"
+	"            uyvy\n"
+	"                Packed format\n"
+	"            yyuv\n"
+	"                Planar packed chroma format\n"
+	"    -s <h1v1|h2v2|h2v1|h1v2>\n"
+	"        Chroma scaling. Used only for planar formats. Default: h1v1\n"
+	"            h1v1\n"
+	"                UV not scaled down [DEFAULT]\n"
+	"            h2v2\n"
+	"                UV scaled down by 2x horizontally and vertically\n"
+	"            h2v1\n"
+	"                UV scaled down by 2x horizontally\n"
+	"            h1v2\n"
+	"                UV scaled down by 2x vertically\n"
 	"\nMultifile sequences:\n"
 	"    Use '#' in file names, so they will be replaced with numbers.\n"
 	"    Examples:\n"
