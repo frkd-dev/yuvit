@@ -1,20 +1,23 @@
-YUVIT [![Build Status](https://travis-ci.org/stunpix/yuvit.svg)](https://travis-ci.org/stunpix/yuvit)
+YUVIT
 =====
 
-YUVIT is open source command line tool for convertinng jpeg, bmp, png, tiff images into YUV images or sequences. Tool has wide support of YUV formats. Wide support for input formats (png, jpeg, tiff, etc) provided by [FreeImage][1] library. 
+[![Build Status](https://travis-ci.org/stunpix/yuvit.svg)](https://travis-ci.org/stunpix/yuvit)
 
-[1]: http://freeimage.sf.net
+Command line tool to convert images from popular formats (png, jpeg, etc) into YUV images or even sequences. It can read all image formats which [FreeImage][1] library [supports][2]. 
+
+[1]: http://freeimage.sourceforge.net
+[2]: http://freeimage.sourceforge.net/features.html
 
 Build
 -----
 
-First, you'll need build tools.
+You'll need cmake, make, g++ and libfreeimage.
 
-For Debian, Ubuntu, Mint:
+On Debian/Ubuntu:
 
     sudo apt-get install g++ cmake libfreeimage-dev
 
-For RadHat, Fedora, CentOS:
+On RadHat/Fedora:
 
     sudo yum install gcc-c++ cmake freeimage-devel
 
@@ -23,9 +26,9 @@ For OS X you'll need a [Brew][1] and [Apple Command-line Tools][2]. Install them
 [1]: http://brew.sh/
 [2]: https://developer.apple.com/downloads/
 
-    brew install cmake freeimage
+    brew install cmake make freeimage
 
-Now get sources and build:
+Clone sources and build:
 
     git clone https://github.com/stunpix/yuvit.git
     mkdir yuvit/build && cd yuvit/build
@@ -109,7 +112,7 @@ Usage
 YUV Formats
 -----------
 
-Here are examples of how 4x4 pixels image can be stored in YUV format depending on options (not all possible cases are shown).
+Some option examples and resulting 4x4 pixel YUV images:
  
 1) -f yuv -s h1v1 [Default]
 
@@ -171,18 +174,13 @@ Here are examples of how 4x4 pixels image can be stored in YUV format depending 
         YYYY
         UVUV
 
-History
--------
-
-Initially tool has been released in 2006 on Sourceforge and named as `any2yuv`. In 2011 after several requests and bug reports, it was rewritten from the ground, renamed to `yuvit` and moved to github.
-
 
 Author
 ------
 
-2005-2015 Alexander Shashkevych <stunpix_gmail.com>
+2005-2015 Alexander Shashkevich <stunpix_gmail.com>
 
 License
 -------
 
-Source code licensed under LGPLv3.
+Source code is licensed under LGPLv3.
