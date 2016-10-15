@@ -3,7 +3,7 @@ YUVIT
 
 [![Build Status](https://travis-ci.org/stunpix/yuvit.svg)](https://travis-ci.org/stunpix/yuvit)
 
-Command line tool to convert images from popular formats (png, jpeg, etc) into YUV images or even sequences. It can read all image formats which [FreeImage][1] library [supports][2]. 
+Command line tool to convert images from popular formats (png, jpeg, etc) into YUV images or even sequences. It can read all image formats which [FreeImage][1] library [supports][2].
 
 [1]: http://freeimage.sourceforge.net
 [2]: http://freeimage.sourceforge.net/features.html
@@ -90,7 +90,7 @@ Usage
                 uyvy
                     Packed format
                 yyuv
-                    Planar packed chroma format
+                    Planar luma with packed chroma format
         -s <h1v1|h2v2|h2v1|h1v2>
             Chroma scaling. Used only for planar formats. Default: h1v1
                 h1v1
@@ -109,71 +109,75 @@ Usage
             yuvit -m 10:200 -o out###.yuv test######.jpg
                 Converts: 'test000010.jpg'...'test000200.jpg' -> 'out010.yuv'...'out200.yuv'
 
-YUV Formats
------------
+Examples
+--------
 
-Some option examples and resulting 4x4 pixel YUV images:
- 
-1) -f yuv -s h1v1 [Default]
+Options to convert to popular YUV formats. All examples show YUV layout of resulting 4x4 image.
 
-        YYYY
-        YYYY
-        UUUU
-        UUUU
-        VVVV
-        VVVV
+### Planar ###
 
-2) -f yuv -s h2v1
+**I420, IYUV** : -f yuv -s h2v2
 
-        YYYY
-        YYYY
-        UU
-        UU
-        VV
-        VV
+    YYYY
+    YYYY
+    YYYY
+    YYYY
+    UU
+    UU
+    VV
+    VV
 
-3) -f yuv -s h1v2
+**YV12 (MPEG codecs)** : -f yuv -s h2v2 -w
 
-        YYYY
-        YYYY
-        UUUU
-        VVVV
+    YYYY
+    YYYY
+    YYYY
+    YYYY
+    VV
+    VV
+    UU
+    UU
 
-4) -f yuv -s h2v1 -i
+**YV16** : -f yuv -s h2v1 -w
 
-        YYYY
-        YYYY
-        UUVV
-        UUVV
+    YY
+    YY
+    V
+    V
+    U
+    U
 
-5) -f yuyv
+**NV12** : -f yyuv -s h2v2
 
-        YUYVYUYV
-        YUYVYUYV
+    YYYY
+    YYYY
+    YYYY
+    YYYY
+    UVUV
+    UVUV
 
-6) -f uyvy
+### Packed ###
 
-        UYVYUYVY
-        UYVYUYVY
+**YUY2, V422, YUYV** : -f yuyv
 
-7) -f yuyv -w
+    YUYVYUYV
+    YUYVYUYV
+    YUYVYUYV
+    YUYVYUYV
 
-        YVYUYVYU
-        YVYUYVYU
+**YVYU** : -f yuyv -w
 
-8) -f yuv -s h2v1 -i -w
+    YVYUYVYU
+    YVYUYVYU
+    YVYUYVYU
+    YVYUYVYU
 
-        YYYY
-        YYYY
-        VVUU
-        VVUU
+**UYVY** : -f uyvy
 
-9) -f yuv -s h1v1
-
-        YYYY
-        YYYY
-        UVUV
-
+    UYVYUYVY
+    UYVYUYVY
+    UYVYUYVY
+    UYVYUYVY
 
 Author
 ------
