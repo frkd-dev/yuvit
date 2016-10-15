@@ -21,10 +21,10 @@ On RadHat/Fedora:
 
     sudo yum install gcc-c++ cmake freeimage-devel
 
-For OS X you'll need a [Brew][1] and [Apple Command-line Tools][2]. Install them, then continue:
+For OS X you'll need a [Brew][3] and [Apple Command-line Tools][4]. Install them, then continue:
 
-[1]: http://brew.sh/
-[2]: https://developer.apple.com/downloads/
+[3]: http://brew.sh/
+[4]: https://developer.apple.com/downloads/
 
     brew install cmake make freeimage
 
